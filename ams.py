@@ -11,21 +11,14 @@ def install_packages():
         print("Criando o ambiente virtual...")
         subprocess.check_call([sys.executable, "-m", "venv", venv_dir])
 
-    # Ativar o ambiente virtual no macOS/Linux
-    activate_script = os.path.join(venv_dir, "bin", "activate_this.py")
-    
-    # Ativar o ambiente virtual no Windows
-    if os.name == 'nt':
-        activate_script = os.path.join(venv_dir, "Scripts", "activate_this.py")
-
-    with open(activate_script) as file:
-        exec(file.read(), dict(__file__=activate_script))
+    # Determina o caminho do Python dentro do ambiente virtual
+    python_path = os.path.join(venv_dir, "bin", "python") if os.name != 'nt' else os.path.join(venv_dir, "Scripts", "python.exe")
 
     # Instala os pacotes necessários do requirements.txt
     requirements_file = "requirements.txt"
     if os.path.exists(requirements_file):
         print("Instalando pacotes do requirements.txt...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", requirements_file])
+        subprocess.check_call([python_path, "-m", "pip", "install", "-r", requirements_file])
     else:
         print(f"Arquivo {requirements_file} não encontrado. Certifique-se de que ele está no diretório do projeto.")
         sys.exit(1)
@@ -34,8 +27,19 @@ if __name__ == "__main__":
     # Verifica e instala pacotes automaticamente
     install_packages()
 
-    # A partir daqui, o ambiente virtual está ativado e os pacotes estão instalados
-    print("Pacotes instalados e ambiente virtual ativado.")
+    # A partir daqui, os pacotes estão instalados e o ambiente virtual está configurado
+    print("Pacotes instalados e ambiente virtual configurado.")
+
+    # Continue seu script normal daqui para frente...
+    # Exemplo de uso:
+    import lxml.etree as etree
+    import rasterio
+    import math
+    import pyproj
+    import geopy.distance
+    from glob import glob
+    from shapely.geometry import Point, Polygon
+    from shapely.ops import transform, unary_union
 
 
 # Caminho para os dados do GDAL instalados via Homebrew (ou qualquer outro caminho)
