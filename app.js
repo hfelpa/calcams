@@ -26,7 +26,7 @@ const baseTileLayer = L.tileLayer(darkTileUrl, {
 
 // Add Zoom Control to Bottom Right
 L.control.zoom({
-    position: 'bottomright'
+    position: 'topright'
 }).addTo(map);
 
 // Layer Group to hold route drawings
@@ -92,9 +92,9 @@ function handleFileUpload(e) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(evt) {
+    reader.onload = function (evt) {
         const text = evt.target.result;
-        
+
         // Hide export button by default on new upload
         exportBtn.classList.add('hidden');
         parsedTxtRoute = null;
@@ -166,7 +166,7 @@ function extractCoordinates(geojson) {
             coords.push(coord);
         } else {
             const last = coords[coords.length - 1];
-            const dist = turf.distance(turf.point(last), turf.point(coord), {units: 'meters'});
+            const dist = turf.distance(turf.point(last), turf.point(coord), { units: 'meters' });
             if (dist > 10) {
                 coords.push(coord);
             }
@@ -180,7 +180,7 @@ function parseRouteFile(text) {
     const lines = text.split(/\r?\n/);
     const waypoints = [];
     const legs = [];
-    
+
     let currentObject = null;
     let contextStack = [];
 
@@ -197,7 +197,7 @@ function parseRouteFile(text) {
 
         const trimmed = line.trim();
         const objMatch = trimmed.match(/^IObjeto\s*-\s*(.*)$/);
-        
+
         if (objMatch) {
             if (currentObject) {
                 saveObject(currentObject, waypoints, legs);
@@ -218,7 +218,7 @@ function parseRouteFile(text) {
             if (eqIndex !== -1) {
                 const key = trimmed.substring(0, eqIndex).trim();
                 const value = trimmed.substring(eqIndex + 1).trim();
-                
+
                 const fullKey = contextStack.filter(Boolean).concat(key).join('.');
 
                 if (key === 'Tipo') {
@@ -306,7 +306,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
     for (let i = 0; i < coordinates.length - 1; i++) {
         const ptA = coordinates[i];
         const ptB = coordinates[i + 1];
-        
+
         const legLine = turf.lineString([ptA, ptB]);
         const corridor = turf.buffer(legLine, 18.52, { units: 'kilometers' });
 
@@ -316,7 +316,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
 
         const bounds = turf.bbox(corridor);
         const zoom = 10;
-        
+
         const minX = lon2tile(bounds[0], zoom);
         const maxX = lon2tile(bounds[2], zoom);
         const minY = lat2tile(bounds[3], zoom);
@@ -342,28 +342,28 @@ async function processRouteCoordinates(coordinates, isTxt) {
 
             const tx = tilePromises[k].tx;
             const ty = tilePromises[k].ty;
-            
+
             // Cache tile image data
             globalTileCache.set(`${zoom},${tx},${ty}`, imageData);
-            
-            const step = 4; 
+
+            const step = 4;
 
             for (let px = 0; px < 256; px += step) {
                 for (let py = 0; py < 256; py += step) {
                     const lat = tile2lat(ty + py / 256, zoom);
                     const lng = tile2lon(tx + px / 256, zoom);
-                    
+
                     const point = turf.point([lng, lat]);
-                    
+
                     if (turf.booleanPointInPolygon(point, corridor)) {
                         const idx = (py * 256 + px) * 4;
                         const r = imageData.data[idx];
                         const g = imageData.data[idx + 1];
                         const b = imageData.data[idx + 2];
-                        
+
                         const elevM = (r * 256 + g + b / 256) - 32768;
                         const elevFt = elevM * 3.28084;
-                        
+
                         if (elevFt > maxElevFt) {
                             maxElevFt = elevFt;
                             maxElevLat = lat;
@@ -377,7 +377,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
 
         let ams = 0;
         const elevDiff = maxElevFt - minElevFt;
-        
+
         if (maxElevFt === -99999) {
             maxElevFt = 0;
             minElevFt = 0;
@@ -409,7 +409,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
                 iconAnchor: [5, 5]
             });
             L.marker([maxElevLat, maxElevLng], { icon: peakIcon })
-                .bindTooltip(`Leg ${i+1} Peak: ${Math.round(maxElevFt)} ft`, {
+                .bindTooltip(`Leg ${i + 1} Peak: ${Math.round(maxElevFt)} ft`, {
                     direction: 'top',
                     className: 'peak-tooltip'
                 })
@@ -418,7 +418,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
 
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>WP ${i+1} ➔ WP ${i+2}</td>
+            <td>WP ${i + 1} ➔ WP ${i + 2}</td>
             <td>${maxElevFt}</td>
             <td>${minElevFt}</td>
             <td>${finalVar}</td>
@@ -437,7 +437,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
         });
 
         const zoom = map.getZoom();
-        
+
         // Dynamic distance threshold (in meters) based on zoom level.
         // At zoom >= 15, we want to separate points unless they are extremely close (e.g. within 3m).
         // At low zoom levels, we group them if they are closer.
@@ -456,7 +456,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
         coordinates.forEach((coord, index) => {
             const lat = coord[1];
             const lng = coord[0];
-            
+
             let foundGroup = null;
             for (const g of groups) {
                 const dist = turf.distance(
@@ -483,18 +483,18 @@ async function processRouteCoordinates(coordinates, isTxt) {
         groups.forEach((wp) => {
             const isMultiple = wp.indices.length > 1;
             let htmlContent = '';
-            
+
             if (isMultiple) {
                 const total = wp.indices.length;
                 const labelsHtml = wp.indices.map((idx, offsetIdx) => {
                     const angle = (2 * Math.PI * offsetIdx) / total;
-                    const radius = 35; 
+                    const radius = 35;
                     const dx = Math.round(Math.cos(angle) * radius);
                     const dy = Math.round(Math.sin(angle) * radius);
-                    
+
                     return `<div class="wp-child-label" style="--dx: ${dx}px; --dy: ${dy}px;">WP ${idx}</div>`;
                 }).join('');
-                
+
                 htmlContent = `
                     <div class="wp-cluster-container">
                         <div class="wp-cluster-badge">WP ${wp.indices[0]}*</div>
@@ -504,7 +504,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
             } else {
                 htmlContent = `<div class="wp-label-single">WP ${wp.indices[0]}</div>`;
             }
-            
+
             const labelWidth = 65;
             const marker = L.marker(wp.coords, {
                 icon: L.divIcon({
@@ -557,7 +557,7 @@ exportBtn.addEventListener('click', () => {
 
     const outputText = lines.join('\n');
     const blob = new Blob([outputText], { type: 'text/plain;charset=utf-8' });
-    
+
     // Create download link
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -594,7 +594,7 @@ function formatGGMM(lat, lng) {
 // Throttle utility to limit mousemove event density
 function throttle(func, limit) {
     let inThrottle;
-    return function() {
+    return function () {
         const args = arguments;
         const context = this;
         if (!inThrottle) {
@@ -644,9 +644,9 @@ map.on('mousemove', throttle(async (e) => {
     const r = imageData.data[idx];
     const g = imageData.data[idx + 1];
     const b = imageData.data[idx + 2];
-    
+
     const elevM = (r * 256 + g + b / 256) - 32768;
     const elevFt = Math.round(elevM * 3.28084);
-    
+
     elevationValue.textContent = `${elevFt} ft`;
 }, 50));
