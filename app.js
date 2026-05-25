@@ -506,7 +506,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
             }
             
             const labelWidth = 65;
-            L.marker(wp.coords, {
+            const marker = L.marker(wp.coords, {
                 icon: L.divIcon({
                     className: 'wp-custom-icon',
                     html: htmlContent,
@@ -515,6 +515,15 @@ async function processRouteCoordinates(coordinates, isTxt) {
                 }),
                 interactive: true
             }).addTo(routeLayers);
+
+            // Add click interaction fallback for touch screens and leaflet maps
+            marker.on('click', (ev) => {
+                L.DomEvent.stopPropagation(ev); // Prevent map clicks
+                const container = ev.target.getElement().querySelector('.wp-cluster-container');
+                if (container) {
+                    container.classList.toggle('expanded');
+                }
+            });
         });
     };
 
