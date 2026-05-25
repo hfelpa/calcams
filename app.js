@@ -409,7 +409,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
                 iconAnchor: [5, 5]
             });
             L.marker([maxElevLat, maxElevLng], { icon: peakIcon })
-                .bindTooltip(`Perna ${i+1} Pico: ${Math.round(maxElevFt)} ft`, {
+                .bindTooltip(`Leg ${i+1} Peak: ${Math.round(maxElevFt)} ft`, {
                     direction: 'top',
                     className: 'peak-tooltip'
                 })
@@ -561,7 +561,7 @@ exportBtn.addEventListener('click', () => {
     // Create download link
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Calculada_${filename}`;
+    link.download = `Calculated_${filename}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
