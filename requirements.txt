@@ -1,5 +1,0 @@
-lxml
-rasterio
-pyproj
-geopy
-shapely
