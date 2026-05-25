@@ -365,6 +365,8 @@ body.light-theme .peak-tooltip {
 .wp-custom-icon {
     background: transparent !important;
     border: none !important;
+    overflow: visible !important; /* Crucial so child elements can render outside boundary box */
+    z-index: 1000 !important;
 }
 
 .wp-label-single {
@@ -387,20 +389,24 @@ body.light-theme .wp-label-single {
 }
 
 .wp-cluster-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;  /* Larger bounding box to capture hover reliably */
+    height: 40px; /* Larger bounding box to capture hover reliably */
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
+    z-index: 1000;
 }
 
 /* Compact representation representing multiple waypoints */
 .wp-cluster-badge {
     background: rgba(30, 41, 59, 0.95);
     border: 2px solid var(--accent-color);
-    padding: 3px 8px;
+    padding: 3.5px 9px;
     border-radius: 6px;
     font-size: 10px;
     font-weight: bold;
@@ -409,8 +415,9 @@ body.light-theme .wp-label-single {
     text-align: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.6);
     z-index: 10;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: 'Fira Code', monospace;
+    pointer-events: none; /* Let hover pass directly to container */
 }
 
 body.light-theme .wp-cluster-badge {
@@ -418,7 +425,7 @@ body.light-theme .wp-cluster-badge {
     color: #0f172a;
 }
 
-/* Child labels that slide out radially on hover */
+/* Child labels that slide out radially on hover/active */
 .wp-child-label {
     position: absolute;
     background: rgba(15, 23, 20, 0.95);
@@ -442,14 +449,17 @@ body.light-theme .wp-child-label {
     color: #0f172a;
 }
 
-/* Trigger radial separation (spidering) on cluster container hover */
-.wp-cluster-container:hover .wp-child-label {
+/* Trigger radial separation (spidering) on hover or active click */
+.wp-cluster-container:hover .wp-child-label,
+.wp-cluster-container.expanded .wp-child-label {
     opacity: 1;
     transform: translate(var(--dx), var(--dy)) scale(1);
     pointer-events: auto;
 }
 
-.wp-cluster-container:hover .wp-cluster-badge {
-    transform: scale(0.85);
-    opacity: 0.5;
+.wp-cluster-container:hover .wp-cluster-badge,
+.wp-cluster-container.expanded .wp-cluster-badge {
+    transform: scale(0.8);
+    opacity: 0.3;
+    border-color: #ef4444; /* visual cue */
 }
