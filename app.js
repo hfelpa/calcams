@@ -458,14 +458,39 @@ async function processRouteCoordinates(coordinates, isTxt) {
     });
 
     groups.forEach((wp) => {
-        const labelText = wp.indices.map(idx => `WP ${idx}`).join(' / ');
-        const labelWidth = Math.max(50, wp.indices.length * 35);
+        const isMultiple = wp.indices.length > 1;
+        let htmlContent = '';
+        
+        if (isMultiple) {
+            // Container that holds the compact label and the expanded children
+            const total = wp.indices.length;
+            const labelsHtml = wp.indices.map((idx, offsetIdx) => {
+                // Calculate radial offsets for visual splitting/spidering on hover
+                const angle = (2 * Math.PI * offsetIdx) / total;
+                const radius = 35; // offset distance in pixels
+                const dx = Math.round(Math.cos(angle) * radius);
+                const dy = Math.round(Math.sin(angle) * radius);
+                
+                return `<div class="wp-child-label" style="--dx: ${dx}px; --dy: ${dy}px;">WP ${idx}</div>`;
+            }).join('');
+            
+            htmlContent = `
+                <div class="wp-cluster-container">
+                    <div class="wp-cluster-badge">WP ${wp.indices[0]}*</div>
+                    ${labelsHtml}
+                </div>
+            `;
+        } else {
+            htmlContent = `<div class="wp-label-single">WP ${wp.indices[0]}</div>`;
+        }
+        
+        const labelWidth = 65;
         L.marker(wp.coords, {
             icon: L.divIcon({
-                className: 'wp-label',
-                html: `<div style="background: rgba(15, 15, 20, 0.95); border: 1px solid var(--accent-color); padding: 3px 8px; border-radius: 6px; font-size: 10px; color: white; white-space: nowrap; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">${labelText}</div>`,
-                iconSize: [labelWidth, 22],
-                iconAnchor: [labelWidth / 2, 11]
+                className: 'wp-custom-icon',
+                html: htmlContent,
+                iconSize: [labelWidth, 24],
+                iconAnchor: [labelWidth / 2, 12]
             })
         }).addTo(routeLayers);
     });
