@@ -427,73 +427,102 @@ async function processRouteCoordinates(coordinates, isTxt) {
         legsTableBody.appendChild(row);
     }
 
-    // Group waypoints that are within 150 meters of each other to prevent label overlaps
-    const groups = [];
-    coordinates.forEach((coord, index) => {
-        const lat = coord[1];
-        const lng = coord[0];
-        
-        let foundGroup = null;
-        for (const g of groups) {
-            // turf.distance uses [lng, lat]
-            const dist = turf.distance(
-                turf.point([lng, lat]),
-                turf.point([g.coords[1], g.coords[0]]),
-                { units: 'meters' }
-            );
-            if (dist < 150) { // 150 meters threshold
-                foundGroup = g;
-                break;
+    // We define a function to draw waypoints dynamically based on the current map zoom level
+    const updateWaypointLabels = () => {
+        // Find existing custom waypoint markers and remove them from routeLayers
+        routeLayers.eachLayer((layer) => {
+            if (layer instanceof L.Marker && (layer.options.icon.options.className === 'wp-custom-icon' || layer.options.icon.options.className === 'wp-label')) {
+                routeLayers.removeLayer(layer);
             }
-        }
+        });
 
-        if (foundGroup) {
-            foundGroup.indices.push(index + 1);
-        } else {
-            groups.push({
-                coords: [lat, lng],
-                indices: [index + 1]
-            });
-        }
-    });
-
-    groups.forEach((wp) => {
-        const isMultiple = wp.indices.length > 1;
-        let htmlContent = '';
+        const zoom = map.getZoom();
         
-        if (isMultiple) {
-            // Container that holds the compact label and the expanded children
-            const total = wp.indices.length;
-            const labelsHtml = wp.indices.map((idx, offsetIdx) => {
-                // Calculate radial offsets for visual splitting/spidering on hover
-                const angle = (2 * Math.PI * offsetIdx) / total;
-                const radius = 35; // offset distance in pixels
-                const dx = Math.round(Math.cos(angle) * radius);
-                const dy = Math.round(Math.sin(angle) * radius);
-                
-                return `<div class="wp-child-label" style="--dx: ${dx}px; --dy: ${dy}px;">WP ${idx}</div>`;
-            }).join('');
+        // Dynamic distance threshold (in meters) based on zoom level.
+        // At zoom >= 15, we want to separate points unless they are extremely close (e.g. within 3m).
+        // At low zoom levels, we group them if they are closer.
+        let groupThreshold = 150; // default for mid zooms
+        if (zoom >= 15) {
+            groupThreshold = 3; // virtually ungrouped
+        } else if (zoom >= 13) {
+            groupThreshold = 30; // separate closer points
+        } else if (zoom >= 11) {
+            groupThreshold = 100;
+        } else {
+            groupThreshold = 400; // cluster heavily on high altitudes
+        }
+
+        const groups = [];
+        coordinates.forEach((coord, index) => {
+            const lat = coord[1];
+            const lng = coord[0];
             
-            htmlContent = `
-                <div class="wp-cluster-container">
-                    <div class="wp-cluster-badge">WP ${wp.indices[0]}*</div>
-                    ${labelsHtml}
-                </div>
-            `;
-        } else {
-            htmlContent = `<div class="wp-label-single">WP ${wp.indices[0]}</div>`;
-        }
-        
-        const labelWidth = 65;
-        L.marker(wp.coords, {
-            icon: L.divIcon({
-                className: 'wp-custom-icon',
-                html: htmlContent,
-                iconSize: [labelWidth, 24],
-                iconAnchor: [labelWidth / 2, 12]
-            })
-        }).addTo(routeLayers);
-    });
+            let foundGroup = null;
+            for (const g of groups) {
+                const dist = turf.distance(
+                    turf.point([lng, lat]),
+                    turf.point([g.coords[1], g.coords[0]]),
+                    { units: 'meters' }
+                );
+                if (dist < groupThreshold) {
+                    foundGroup = g;
+                    break;
+                }
+            }
+
+            if (foundGroup) {
+                foundGroup.indices.push(index + 1);
+            } else {
+                groups.push({
+                    coords: [lat, lng],
+                    indices: [index + 1]
+                });
+            }
+        });
+
+        groups.forEach((wp) => {
+            const isMultiple = wp.indices.length > 1;
+            let htmlContent = '';
+            
+            if (isMultiple) {
+                const total = wp.indices.length;
+                const labelsHtml = wp.indices.map((idx, offsetIdx) => {
+                    const angle = (2 * Math.PI * offsetIdx) / total;
+                    const radius = 35; 
+                    const dx = Math.round(Math.cos(angle) * radius);
+                    const dy = Math.round(Math.sin(angle) * radius);
+                    
+                    return `<div class="wp-child-label" style="--dx: ${dx}px; --dy: ${dy}px;">WP ${idx}</div>`;
+                }).join('');
+                
+                htmlContent = `
+                    <div class="wp-cluster-container">
+                        <div class="wp-cluster-badge">WP ${wp.indices[0]}*</div>
+                        ${labelsHtml}
+                    </div>
+                `;
+            } else {
+                htmlContent = `<div class="wp-label-single">WP ${wp.indices[0]}</div>`;
+            }
+            
+            const labelWidth = 65;
+            L.marker(wp.coords, {
+                icon: L.divIcon({
+                    className: 'wp-custom-icon',
+                    html: htmlContent,
+                    iconSize: [labelWidth, 24],
+                    iconAnchor: [labelWidth / 2, 12]
+                }),
+                interactive: true
+            }).addTo(routeLayers);
+        });
+    };
+
+    // Initial render of waypoints
+    updateWaypointLabels();
+
+    // Listen to zoom changes to re-calculate grouping threshold and redraw labels
+    map.on('zoomend', updateWaypointLabels);
 
     // Hide loader
     loadingSpinner.classList.add('hidden');
