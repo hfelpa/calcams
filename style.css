@@ -229,10 +229,25 @@ tr:hover td {
 }
 
 /* Highlight Column for AMS */
-td:last-child {
+.ams-highlight {
     font-weight: 600;
     color: var(--accent-color); /* Green Accent */
 }
+
+.height-range-cell {
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
+.height-max {
+    color: #ef4444; /* Red color representing peak height */
+    font-weight: 500;
+}
+
+.height-min {
+    color: var(--text-secondary);
+}
+
 
 /* Floating Info Panel (Bottom Right) */
 .info-panel {
