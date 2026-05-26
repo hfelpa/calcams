@@ -162,24 +162,43 @@ function loadTileImage(z, x, y) {
 function extractCoordinates(geojson) {
     const coords = [];
     
-    // 1. Try to find LineString or MultiLineString features (typical for routes/tracks)
-    const lineFeatures = [];
+    // Find all LineString/MultiLineString features and categorize them
+    const routeFeatures = [];
+    const trackFeatures = [];
+    
     turf.featureEach(geojson, (feature) => {
         const type = feature.geometry ? feature.geometry.type : '';
         if (type === 'LineString' || type === 'MultiLineString') {
-            lineFeatures.push(feature);
+            const gpxType = feature.properties ? feature.properties._gpxType : '';
+            if (gpxType === 'rte') {
+                routeFeatures.push(feature);
+            } else if (gpxType === 'trk') {
+                trackFeatures.push(feature);
+            } else {
+                // Fallback for lines without explicit type
+                routeFeatures.push(feature);
+            }
         }
     });
 
-    if (lineFeatures.length > 0) {
-        // Use coordinates from line features (preserves sequence and path)
-        lineFeatures.forEach(feature => {
+    // Prioritize GPX Routes (rte) over Tracks (trk)
+    let selectedFeatures = [];
+    if (routeFeatures.length > 0) {
+        selectedFeatures = routeFeatures;
+    } else if (trackFeatures.length > 0) {
+        selectedFeatures = trackFeatures;
+    }
+
+    if (selectedFeatures.length > 0) {
+        // Use coordinates from the selected lines (preserves sequence)
+        selectedFeatures.forEach(feature => {
             turf.coordEach(feature, (coord) => {
                 if (coords.length === 0) {
                     coords.push(coord);
                 } else {
                     const last = coords[coords.length - 1];
                     const dist = turf.distance(turf.point(last), turf.point(coord), { units: 'meters' });
+                    // Avoid adjacent duplicates (closer than 10 meters)
                     if (dist > 10) {
                         coords.push(coord);
                     }
@@ -187,7 +206,8 @@ function extractCoordinates(geojson) {
             });
         });
     } else {
-        // Fallback: collect coordinates from individual Point features
+        // Fallback: collect coordinates from individual Point features (Waypoints)
+        // Usually used if the GPX only contains <wpt> elements
         turf.featureEach(geojson, (feature) => {
             const type = feature.geometry ? feature.geometry.type : '';
             if (type === 'Point') {
