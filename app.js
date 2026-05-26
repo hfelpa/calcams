@@ -161,17 +161,50 @@ function loadTileImage(z, x, y) {
 // Extract coords from GeoJSON features
 function extractCoordinates(geojson) {
     const coords = [];
-    turf.coordEach(geojson, (coord) => {
-        if (coords.length === 0) {
-            coords.push(coord);
-        } else {
-            const last = coords[coords.length - 1];
-            const dist = turf.distance(turf.point(last), turf.point(coord), { units: 'meters' });
-            if (dist > 10) {
-                coords.push(coord);
-            }
+    
+    // 1. Try to find LineString or MultiLineString features (typical for routes/tracks)
+    const lineFeatures = [];
+    turf.featureEach(geojson, (feature) => {
+        const type = feature.geometry ? feature.geometry.type : '';
+        if (type === 'LineString' || type === 'MultiLineString') {
+            lineFeatures.push(feature);
         }
     });
+
+    if (lineFeatures.length > 0) {
+        // Use coordinates from line features (preserves sequence and path)
+        lineFeatures.forEach(feature => {
+            turf.coordEach(feature, (coord) => {
+                if (coords.length === 0) {
+                    coords.push(coord);
+                } else {
+                    const last = coords[coords.length - 1];
+                    const dist = turf.distance(turf.point(last), turf.point(coord), { units: 'meters' });
+                    if (dist > 10) {
+                        coords.push(coord);
+                    }
+                }
+            });
+        });
+    } else {
+        // Fallback: collect coordinates from individual Point features
+        turf.featureEach(geojson, (feature) => {
+            const type = feature.geometry ? feature.geometry.type : '';
+            if (type === 'Point') {
+                const coord = feature.geometry.coordinates;
+                if (coords.length === 0) {
+                    coords.push(coord);
+                } else {
+                    const last = coords[coords.length - 1];
+                    const dist = turf.distance(turf.point(last), turf.point(coord), { units: 'meters' });
+                    if (dist > 10) {
+                        coords.push(coord);
+                    }
+                }
+            }
+        });
+    }
+
     return coords;
 }
 
@@ -419,7 +452,7 @@ async function processRouteCoordinates(coordinates, isTxt) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>WP ${i + 1} ➔ WP ${i + 2}</td>
-            <td class="ams-highlight">${ams} ft</td>
+            <td class="ams-highlight">${ams}</td>
             <td class="height-range-cell">
                 <div class="height-max">${maxElevFt}</div>
                 <div class="height-min">${minElevFt}</div>
