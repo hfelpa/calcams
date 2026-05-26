@@ -188,6 +188,7 @@ body.light-theme .theme-selector {
 .table-container {
     flex-grow: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     border-radius: 8px;
     border: 1px solid var(--glass-border);
 }
@@ -206,7 +207,7 @@ tr {
 }
 
 th, td {
-    padding: 12px 10px;
+    padding: 8px 6px;
     border-bottom: 1px solid var(--glass-border);
 }
 
@@ -217,11 +218,10 @@ th {
     position: sticky;
     top: 0;
     z-index: 10;
-    white-space: nowrap;
 }
 
 td {
-    white-space: nowrap;
+    /* white-space: nowrap removed to avoid overflow */
 }
 
 tr:hover td {
