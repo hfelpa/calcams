@@ -420,11 +420,11 @@ async function processRouteCoordinates(coordinates, isTxt) {
         row.innerHTML = `
             <td>WP ${i + 1} ➔ WP ${i + 2}</td>
             <td class="ams-highlight">${ams} ft</td>
-            <td>${finalVar}</td>
             <td class="height-range-cell">
                 <div class="height-max">${maxElevFt}</div>
                 <div class="height-min">${minElevFt}</div>
             </td>
+            <td>${finalVar}</td>
         `;
         legsTableBody.appendChild(row);
     }
