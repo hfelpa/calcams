@@ -419,10 +419,12 @@ async function processRouteCoordinates(coordinates, isTxt) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>WP ${i + 1} ➔ WP ${i + 2}</td>
-            <td>${maxElevFt}</td>
-            <td>${minElevFt}</td>
+            <td class="ams-highlight">${ams} ft</td>
             <td>${finalVar}</td>
-            <td>${ams} ft</td>
+            <td class="height-range-cell">
+                <div class="height-max">${maxElevFt}</div>
+                <div class="height-min">${minElevFt}</div>
+            </td>
         `;
         legsTableBody.appendChild(row);
     }
