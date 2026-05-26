@@ -24,7 +24,7 @@ const baseTileLayer = L.tileLayer(darkTileUrl, {
     maxZoom: 20
 }).addTo(map);
 
-// Add Zoom Control to Bottom Right
+// Add Zoom Control to Top Right
 L.control.zoom({
     position: 'topright'
 }).addTo(map);

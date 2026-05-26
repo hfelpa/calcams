@@ -463,3 +463,23 @@ body.light-theme .wp-child-label {
     opacity: 0.3;
     border-color: #ef4444; /* visual cue */
 }
+
+/* Footer styling */
+.footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--glass-border);
+    font-family: 'Fira Code', monospace;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.5;
+}
+
+.footer-motto {
+    color: var(--accent-color);
+    font-weight: 600;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+}
+
