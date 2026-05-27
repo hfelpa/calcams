@@ -196,7 +196,7 @@ body.light-theme .theme-selector {
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     text-align: left;
     font-family: 'Fira Code', monospace;
 }
@@ -207,7 +207,7 @@ tr {
 }
 
 th, td {
-    padding: 8px 6px;
+    padding: 12px 10px;
     border-bottom: 1px solid var(--glass-border);
 }
 
@@ -305,7 +305,7 @@ tr:hover td {
 
 /* Map adjustment */
 .leaflet-left {
-    left: 430px !important; /* Move map zoom tools out of the way of the sidebar */
+    left: 500px !important; /* Move map zoom tools out of the way of the sidebar */
 }
 
 .hidden {
