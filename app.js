@@ -9,6 +9,13 @@ const resultsSection = document.getElementById('resultsSection');
 const legsTableBody = document.getElementById('legsTableBody');
 const exportBtn = document.getElementById('exportBtn');
 
+// Upload Area UI Elements
+const uploadFileName = document.getElementById('upload-file-name');
+const dragZoneContainer = document.getElementById('dragZoneContainer');
+const uploadIcon = document.getElementById('upload-icon');
+const uploadBtnText = document.getElementById('upload-btn-text');
+const helpPanel = document.getElementById('helpPanel');
+
 // Initialize Map
 const map = L.map('map', {
     zoomControl: false
@@ -36,8 +43,6 @@ const routeLayers = L.layerGroup().addTo(map);
 const themeBtns = document.querySelectorAll('.theme-btn');
 themeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-        themeBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
         const selectedTheme = btn.getAttribute('data-theme');
         localStorage.setItem('app-theme', selectedTheme);
         applyTheme(selectedTheme);
@@ -50,34 +55,51 @@ function applyTheme(theme) {
         isDark = false;
     } else if (theme === 'dark') {
         isDark = true;
-    } else { // auto
+    } else { // System determination fallback
         isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
 
+    const html = document.documentElement;
+    const body = document.body;
+
+    // Highlight theme buttons matching hawgoff style
+    themeBtns.forEach(b => {
+        b.classList.remove('bg-white/20', 'bg-black/15');
+        b.classList.add('hover:bg-white/10');
+    });
+
+    const activeMode = isDark ? 'dark' : 'light';
+    const activeBtn = document.getElementById(`theme-btn-${activeMode}`);
+    if (activeBtn) {
+        activeBtn.classList.remove('hover:bg-white/10');
+        activeBtn.classList.add(isDark ? 'bg-white/20' : 'bg-black/15');
+    }
+
     if (isDark) {
-        document.body.classList.remove('light-theme');
+        body.classList.remove('light-theme', 'light-mode');
+        body.classList.add('dark-theme', 'dark-mode');
+        html.classList.remove('light');
+        html.classList.add('dark');
         baseTileLayer.setUrl(darkTileUrl);
     } else {
-        document.body.classList.add('light-theme');
+        body.classList.add('light-theme', 'light-mode');
+        body.classList.remove('dark-theme', 'dark-mode');
+        html.classList.add('light');
+        html.classList.remove('dark');
         baseTileLayer.setUrl(lightTileUrl);
     }
 }
 
 // System theme listener
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    const currentSetting = localStorage.getItem('app-theme') || 'auto';
-    if (currentSetting === 'auto') {
-        applyTheme('auto');
+    // Only adjust dynamically if the user hasn't explicitly set a preference
+    if (!localStorage.getItem('app-theme')) {
+        applyTheme('system');
     }
 });
 
-// Load saved theme preference
-const savedTheme = localStorage.getItem('app-theme') || 'auto';
-const activeBtn = document.querySelector(`.theme-btn[data-theme="${savedTheme}"]`);
-if (activeBtn) {
-    themeBtns.forEach(b => b.classList.remove('active'));
-    activeBtn.classList.add('active');
-}
+// Load saved theme preference or use system preference
+const savedTheme = localStorage.getItem('app-theme') || 'system';
 applyTheme(savedTheme);
 
 // State for custom TXT route
@@ -90,6 +112,27 @@ fileInput.addEventListener('change', handleFileUpload);
 function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Update upload zone UI to show selected file and visual feedback
+    if (uploadFileName) {
+        uploadFileName.textContent = file.name;
+        uploadFileName.classList.remove('opacity-60');
+        uploadFileName.classList.add('text-dtc-accent', 'font-semibold');
+    }
+    if (dragZoneContainer) {
+        dragZoneContainer.classList.add('border-dtc-accent', 'bg-dtc-accent/5');
+    }
+    if (uploadIcon) {
+        uploadIcon.textContent = 'check_circle';
+        uploadIcon.classList.remove('opacity-40');
+        uploadIcon.classList.add('text-dtc-accent');
+    }
+    if (uploadBtnText) {
+        uploadBtnText.textContent = 'Alterar Arquivo';
+    }
+    if (helpPanel) {
+        helpPanel.classList.add('hidden');
+    }
 
     const reader = new FileReader();
     reader.onload = function (evt) {
