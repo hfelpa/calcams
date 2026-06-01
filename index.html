@@ -4,20 +4,21 @@
 <head>
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-  <title>CALCAMS - Dashboard</title>
+  <title>CALCAMS</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <!-- Custom CSS / Leaflet Overrides -->
   <link rel="stylesheet" href="style.css">
-  
+
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap"
     rel="stylesheet" />
   <link
     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
     rel="stylesheet" />
-  
+
   <script id="tailwind-config">
     tailwind.config = {
       darkMode: "class",
@@ -115,7 +116,7 @@
       },
     }
   </script>
-  
+
   <style>
     body {
       transition: background-color 0.3s ease, color 0.3s ease;
@@ -287,13 +288,16 @@
     .dtc-scrollbar::-webkit-scrollbar {
       width: 6px;
     }
+
     .dtc-scrollbar::-webkit-scrollbar-track {
       background: transparent;
     }
+
     .dtc-scrollbar::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 3px;
     }
+
     .light-mode .dtc-scrollbar::-webkit-scrollbar-thumb {
       background: rgba(0, 0, 0, 0.1);
     }
@@ -304,18 +308,6 @@
 
   <!-- TopNavBar -->
   <header class="w-full top-0 sticky flex justify-between items-center px-container-padding py-4 dtc-header z-50">
-    <div class="flex items-center gap-gutter">
-      <span class="font-headline-lg text-headline-lg font-black text-primary uppercase tracking-tight">CALCAMS</span>
-      <nav class="hidden md:flex gap-gutter items-center ml-stack-lg">
-        <a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1 transition-colors"
-          href="#">Dashboard</a>
-        <a class="font-body-md text-body-md opacity-70 hover:opacity-100 transition-colors" href="#"
-          onclick="alert('Recurso em desenvolvimento')">Histórico</a>
-        <a class="font-body-md text-body-md opacity-70 hover:opacity-100 transition-colors" href="#"
-          onclick="alert('Recurso em desenvolvimento')">Configurações</a>
-      </nav>
-    </div>
-    
     <div class="flex items-center gap-stack-md">
       <!-- Theme Toggle: light / dark only -->
       <div class="flex items-center bg-black/10 dark:bg-white/5 rounded-full p-1 border border-outline-variant/30">
@@ -333,19 +325,23 @@
 
   <!-- Main Container -->
   <div class="flex h-[calc(100vh-64px)] w-full overflow-hidden">
-    
+
     <!-- SideNavBar -->
     <aside class="w-[480px] dtc-sidebar flex flex-col p-stack-md shrink-0 h-full justify-between overflow-hidden">
       <!-- Top Section -->
       <div class="flex flex-col gap-4 shrink-0">
         <!-- ROUTE FILE Upload Zone -->
         <div id="upload-zone">
-          <label class="font-label-caps text-label-caps opacity-60 block mb-stack-sm uppercase text-[10px] font-bold">Importar Rota</label>
-          <div class="drag-zone rounded-lg p-3 flex flex-col items-center justify-center text-center h-[95px]" id="dragZoneContainer">
+          <label
+            class="font-label-caps text-label-caps opacity-60 block mb-stack-sm uppercase text-[10px] font-bold">Importar
+            Rota</label>
+          <div class="drag-zone rounded-lg p-3 flex flex-col items-center justify-center text-center h-[95px]"
+            id="dragZoneContainer">
             <input type="file" id="fileInput" accept=".gpx,.kml,.txt" class="dropzone-file-input">
             <div class="flex items-center gap-2 mb-1.5">
               <span class="material-symbols-outlined opacity-40 text-[22px]" id="upload-icon">map</span>
-              <p class="font-body-sm text-body-sm opacity-60 font-semibold" id="upload-file-name">Selecione GPX, KML ou TXT...</p>
+              <p class="font-body-sm text-body-sm opacity-60 font-semibold" id="upload-file-name">Selecione GPX, KML ou
+                TXT...</p>
             </div>
             <button type="button" id="upload-btn-text"
               class="dtc-btn-primary px-4 py-1.5 rounded-lg font-body-md text-xs transition-colors shadow-sm font-bold uppercase tracking-wider">
@@ -355,20 +351,25 @@
         </div>
 
         <!-- Description/Instruction Panel -->
-        <div id="helpPanel" class="rounded-lg p-4 border dtc-panel-border bg-black/10 dark:bg-white/5 transition-all duration-300">
+        <div id="helpPanel"
+          class="rounded-lg p-4 border dtc-panel-border bg-black/10 dark:bg-white/5 transition-all duration-300">
           <p class="text-xs opacity-75 leading-relaxed">
-            Faça o upload de um arquivo de rota GPX, KML ou TXT para calcular o corredor de segurança e a altitude mínima da área (AMS) de cada trecho da rota automaticamente.
+            Faça o upload de um arquivo de rota GPX, KML ou TXT para calcular o corredor de segurança e a altitude
+            mínima da área (AMS) de cada trecho da rota automaticamente.
           </p>
         </div>
       </div>
 
       <!-- Results Table Section (Dynamically expands to fill remaining space) -->
       <div class="results-section hidden flex-1 min-h-0 flex flex-col gap-3 my-4" id="resultsSection">
-        <label class="font-label-caps text-label-caps opacity-60 block uppercase text-[10px] font-bold">Trechos da Rota & AMS</label>
-        <div class="border dtc-panel-border rounded-lg overflow-hidden bg-black/10 dark:bg-white/5 flex-1 min-h-0 flex flex-col">
+        <label class="font-label-caps text-label-caps opacity-60 block uppercase text-[10px] font-bold">Trechos da Rota
+          & AMS</label>
+        <div
+          class="border dtc-panel-border rounded-lg overflow-hidden bg-black/10 dark:bg-white/5 flex-1 min-h-0 flex flex-col">
           <div class="flex-1 overflow-y-auto dtc-scrollbar">
             <table class="w-full border-collapse" id="legsTable">
-              <thead class="dtc-grid-header sticky top-0 bg-slate-200 dark:bg-neutral-900 text-slate-700 dark:text-neutral-300">
+              <thead
+                class="dtc-grid-header sticky top-0 bg-slate-200 dark:bg-neutral-900 text-slate-700 dark:text-neutral-300">
                 <tr>
                   <th class="text-left py-2.5 px-3">Trecho</th>
                   <th class="text-center py-2.5 px-2">AMS (ft)</th>
@@ -382,7 +383,8 @@
             </table>
           </div>
         </div>
-        <button id="exportBtn" class="export-btn hidden w-full py-3 bg-dtc-orange text-white font-bold uppercase tracking-wider rounded-lg text-xs shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0">
+        <button id="exportBtn"
+          class="export-btn hidden w-full py-3 bg-dtc-orange text-white font-bold uppercase tracking-wider rounded-lg text-xs shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0">
           Exportar Rota Calculada
         </button>
       </div>
@@ -391,7 +393,8 @@
       <div class="pt-stack-md border-t dtc-panel-border mt-auto bg-transparent shrink-0">
         <p class="font-body-sm text-[11px] opacity-40">v. 1.1.0-beta</p>
         <p class="font-body-sm text-[11px] opacity-60">Developed by FPT</p>
-        <p class="font-body-sm text-[10px] font-bold uppercase tracking-wider text-dtc-accent mt-2">FLECHA AO AR! À CAÇA! BRASIL!</p>
+        <p class="font-body-sm text-[10px] font-bold uppercase tracking-wider text-dtc-accent mt-2">FLECHA AO AR! À
+          CAÇA! BRASIL!</p>
       </div>
     </aside>
 
@@ -401,11 +404,14 @@
       <div id="map" class="absolute inset-0 w-full h-full z-10"></div>
 
       <!-- Floating Elevation and Coordinate Panel (Bottom Right) -->
-      <div class="absolute bottom-5 right-5 z-20 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white/95 dark:bg-black/90 backdrop-blur-md px-6 py-4 min-w-[280px] shadow-lg flex flex-col justify-center text-right text-slate-900 dark:text-white" id="infoPanel">
+      <div
+        class="absolute bottom-5 right-5 z-20 rounded-lg border border-slate-200 dark:border-neutral-800 bg-white/95 dark:bg-black/90 backdrop-blur-md px-6 py-4 min-w-[280px] shadow-lg flex flex-col justify-center text-right text-slate-900 dark:text-white"
+        id="infoPanel">
         <div class="info-content flex flex-col gap-1">
           <div class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold">Altitude</div>
           <div class="text-3xl font-black font-code-md tracking-tight text-dtc-accent" id="elevationValue">-- ft</div>
-          <div class="text-[11px] font-code-sm text-slate-600 dark:text-slate-300 mt-1" id="coordinatesValue">Lat: -- / Lng: --</div>
+          <div class="text-[11px] font-code-sm text-slate-600 dark:text-slate-300 mt-1" id="coordinatesValue">Lat: -- /
+            Lng: --</div>
           <div class="loading-spinner hidden" id="loadingSpinner"></div>
         </div>
       </div>
@@ -414,7 +420,8 @@
   </div>
 
   <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <!-- Turf.js for Geospatial Buffer & Intersections -->
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
   <!-- Mapbox toGeoJSON for GPX/KML parsing -->
