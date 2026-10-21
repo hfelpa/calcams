@@ -1,0 +1,172 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "f53f4be8734c96935369ae95b60b504fb4126a05",
+  "generatedAt": "2026-05-26T18:11:38.815Z",
+  "files": {
+    ".understand-anything/.understandignore": {
+      "filePath": ".understand-anything/.understandignore",
+      "contentHash": "7e316afd09f37fe3a5fbbeb61e0654148d140d721f06252e37dc2d61b24bf5b1",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 20,
+      "hasStructuralAnalysis": false
+    },
+    "app.js": {
+      "filePath": "app.js",
+      "contentHash": "6c2bf249aaf1c99cfe795082a13e4f886149a5c9ab8b454f8507e6ea9a7b1321",
+      "functions": [
+        {
+          "name": "applyTheme",
+          "params": [
+            "theme"
+          ],
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "handleFileUpload",
+          "params": [
+            "e"
+          ],
+          "exported": false,
+          "lineCount": 34
+        },
+        {
+          "name": "lon2tile",
+          "params": [
+            "lon",
+            "zoom"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "lat2tile",
+          "params": [
+            "lat",
+            "zoom"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "tile2lon",
+          "params": [
+            "x",
+            "z"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "tile2lat",
+          "params": [
+            "y",
+            "z"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "loadTileImage",
+          "params": [
+            "z",
+            "x",
+            "y"
+          ],
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "extractCoordinates",
+          "params": [
+            "geojson"
+          ],
+          "exported": false,
+          "lineCount": 68
+        },
+        {
+          "name": "parseRouteFile",
+          "params": [
+            "text"
+          ],
+          "exported": false,
+          "lineCount": 66
+        },
+        {
+          "name": "saveObject",
+          "params": [
+            "obj",
+            "waypoints",
+            "legs"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "processTxtRoute",
+          "params": [
+            "text",
+            "filename"
+          ],
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "processRouteCoordinates",
+          "params": [
+            "coordinates",
+            "isTxt"
+          ],
+          "exported": false,
+          "lineCount": 257
+        },
+        {
+          "name": "formatGGMM",
+          "params": [
+            "lat",
+            "lng"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "throttle",
+          "params": [
+            "func",
+            "limit"
+          ],
+          "exported": false,
+          "lineCount": 12
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 708,
+      "hasStructuralAnalysis": true
+    },
+    "index.html": {
+      "filePath": "index.html",
+      "contentHash": "e8ea328aa383a58cffc0e33e1e6dfafe67b30cafe66461e5417ed14564b891b6",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 88,
+      "hasStructuralAnalysis": false
+    },
+    "style.css": {
+      "filePath": "style.css",
+      "contentHash": "3c8387a2713502fc26f4a9a887d4ef6ac12b162b6fd94cb9762d518a8f0e6e4c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 501,
+      "hasStructuralAnalysis": false
+    }
+  }
+}

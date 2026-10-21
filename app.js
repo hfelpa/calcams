@@ -21,14 +21,13 @@ const map = L.map('map', {
     zoomControl: false
 }).setView([-14.2350, -51.9253], 4);
 
-const darkTileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-const lightTileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+const osmTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-// Add Dynamic Theme Base Layer
-const baseTileLayer = L.tileLayer(darkTileUrl, {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 20
+// Add Base Layer (OpenStreetMap with CSS dark filter in dark mode)
+const baseTileLayer = L.tileLayer(osmTileUrl, {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+    className: 'map-tiles'
 }).addTo(map);
 
 // Add Zoom Control to Top Right
@@ -80,13 +79,11 @@ function applyTheme(theme) {
         body.classList.add('dark-theme', 'dark-mode');
         html.classList.remove('light');
         html.classList.add('dark');
-        baseTileLayer.setUrl(darkTileUrl);
     } else {
         body.classList.add('light-theme', 'light-mode');
         body.classList.remove('dark-theme', 'dark-mode');
         html.classList.add('light');
         html.classList.remove('dark');
-        baseTileLayer.setUrl(lightTileUrl);
     }
 }
 

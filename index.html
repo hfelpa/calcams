@@ -175,10 +175,22 @@
       outline: 1px solid #22c55e;
     }
 
+    .dark-mode #map {
+      background-color: #0c0c0c;
+    }
+
+    .dark-mode .map-tiles {
+      filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+    }
+
     /* Light Mode Styles */
     body.light-mode {
       background-color: #e5e7eb;
       color: #1f2937;
+    }
+
+    .light-mode #map {
+      background-color: #e5e7eb;
     }
 
     .light-mode .dtc-main-bg {
@@ -391,7 +403,7 @@
 
       <!-- Footer -->
       <div class="pt-stack-md border-t dtc-panel-border mt-auto bg-transparent shrink-0">
-        <p class="font-body-sm text-[11px] opacity-40">v. 1.1.0-beta</p>
+        <p class="font-body-sm text-[11px] opacity-40">v. 1.1.1-beta</p>
         <p class="font-body-sm text-[11px] opacity-60">Developed by FPT</p>
         <p class="font-body-sm text-[10px] font-bold uppercase tracking-wider text-dtc-accent mt-2">FLECHA AO AR! À
           CAÇA! BRASIL!</p>
