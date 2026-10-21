@@ -1,0 +1,433 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "CalcAMS",
+    "languages": ["css", "html", "javascript"],
+    "frameworks": ["Leaflet", "Turf.js"],
+    "description": "A web application to calculate safety corridors and Area Minimum Altitude (AMS) for GPX, KML, and TXT routes.",
+    "analyzedAt": "2026-05-26T18:11:00Z",
+    "gitCommitHash": "f53f4be8734c96935369ae95b60b504fb4126a05"
+  },
+  "nodes": [
+    {
+      "id": "file:.understand-anything/.understandignore",
+      "type": "file",
+      "name": ".understandignore",
+      "filePath": ".understand-anything/.understandignore",
+      "summary": "Exclusion pattern list specifying files and directories to ignore during codebase analysis.",
+      "tags": [
+        "configuration",
+        "build-system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:app.js",
+      "type": "file",
+      "name": "app.js",
+      "filePath": "app.js",
+      "summary": "Core client-side JavaScript file implementing Leaflet maps, Turf.js calculations, GPX/KML parsing, and AMS corridor processing.",
+      "tags": [
+        "entry-point",
+        "utility",
+        "event-handler"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "index.html",
+      "summary": "HTML user interface definition with sidebar panel, theme toggle, GPX/KML/TXT upload button, and Leaflet map container.",
+      "tags": [
+        "user-interface",
+        "markup",
+        "layout"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:style.css",
+      "type": "file",
+      "name": "style.css",
+      "filePath": "style.css",
+      "summary": "Vibrant custom styling system supporting dark, light, and system themes with glassmorphism sidebar panels.",
+      "tags": [
+        "styling",
+        "theme",
+        "layout"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:app.js:applyTheme",
+      "type": "function",
+      "name": "applyTheme",
+      "filePath": "app.js",
+      "lineRange": [
+        47,
+        64
+      ],
+      "summary": "Applies the chosen color theme (light, dark, or system auto) and updates the map tile source URLs.",
+      "tags": [
+        "theme",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:app.js:handleFileUpload",
+      "type": "function",
+      "name": "handleFileUpload",
+      "filePath": "app.js",
+      "lineRange": [
+        90,
+        123
+      ],
+      "summary": "Handles route file uploads, determines format (GPX, KML, TXT), parses XML or plain text, and kicks off coordinates extraction.",
+      "tags": [
+        "file-upload",
+        "parser",
+        "event-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:app.js:loadTileImage",
+      "type": "function",
+      "name": "loadTileImage",
+      "filePath": "app.js",
+      "lineRange": [
+        141,
+        159
+      ],
+      "summary": "Asynchronously loads a map tile image and draws it to a canvas to inspect image data for elevation values.",
+      "tags": [
+        "map-tile",
+        "canvas",
+        "async"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:app.js:extractCoordinates",
+      "type": "function",
+      "name": "extractCoordinates",
+      "filePath": "app.js",
+      "lineRange": [
+        162,
+        229
+      ],
+      "summary": "Extracts coordinates from GeoJSON feature collections, computing distances and densifying points along track/route lines.",
+      "tags": [
+        "geojson",
+        "geospatial",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:app.js:parseRouteFile",
+      "type": "function",
+      "name": "parseRouteFile",
+      "filePath": "app.js",
+      "lineRange": [
+        232,
+        297
+      ],
+      "summary": "Parses TXT route files containing structured waypoint data, names, and custom properties.",
+      "tags": [
+        "parser",
+        "txt",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:app.js:saveObject",
+      "type": "function",
+      "name": "saveObject",
+      "filePath": "app.js",
+      "lineRange": [
+        299,
+        313
+      ],
+      "summary": "Saves a parsed waypoint or leg object into corresponding arrays during TXT route parsing.",
+      "tags": [
+        "data-structure",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:app.js:processTxtRoute",
+      "type": "function",
+      "name": "processTxtRoute",
+      "filePath": "app.js",
+      "lineRange": [
+        316,
+        336
+      ],
+      "summary": "Processes parsed TXT route data, rendering waypoints on the map and triggering leg calculation.",
+      "tags": [
+        "route-processing",
+        "map-render"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:app.js:processRouteCoordinates",
+      "type": "function",
+      "name": "processRouteCoordinates",
+      "filePath": "app.js",
+      "lineRange": [
+        339,
+        595
+      ],
+      "summary": "Core calculation engine that buffers the route, downloads tiles, queries elevations, computes AMS, and builds the legs table.",
+      "tags": [
+        "calculation",
+        "geospatial",
+        "leaflet"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:app.js:formatGGMM",
+      "type": "function",
+      "name": "formatGGMM",
+      "filePath": "app.js",
+      "lineRange": [
+        633,
+        647
+      ],
+      "summary": "Formats decimal latitude and longitude into degrees and decimal minutes (GGMM) format for aviation navigation.",
+      "tags": [
+        "formatting",
+        "navigation",
+        "aviation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:app.js:throttle",
+      "type": "function",
+      "name": "throttle",
+      "filePath": "app.js",
+      "lineRange": [
+        650,
+        661
+      ],
+      "summary": "Generic throttle utility function to rate-limit execution of rapid event handlers.",
+      "tags": [
+        "utility",
+        "performance"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:app.js",
+      "target": "function:app.js:applyTheme",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:app.js",
+      "target": "function:app.js:handleFileUpload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:app.js",
+      "target": "function:app.js:loadTileImage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:app.js",
+      "target": "function:app.js:extractCoordinates",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:app.js",
+      "target": "function:app.js:parseRouteFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:app.js",
+      "target": "function:app.js:saveObject",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:app.js",
+      "target": "function:app.js:processTxtRoute",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:app.js",
+      "target": "function:app.js:processRouteCoordinates",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:app.js",
+      "target": "function:app.js:formatGGMM",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:app.js",
+      "target": "function:app.js:throttle",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:index.html",
+      "target": "file:style.css",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:index.html",
+      "target": "file:app.js",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "function:app.js:handleFileUpload",
+      "target": "function:app.js:processTxtRoute",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:app.js:handleFileUpload",
+      "target": "function:app.js:extractCoordinates",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:app.js:handleFileUpload",
+      "target": "function:app.js:processRouteCoordinates",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:app.js:processTxtRoute",
+      "target": "function:app.js:parseRouteFile",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:app.js:processTxtRoute",
+      "target": "function:app.js:processRouteCoordinates",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:app.js:parseRouteFile",
+      "target": "function:app.js:saveObject",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:app.js:processRouteCoordinates",
+      "target": "function:app.js:loadTileImage",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:.understand-anything/.understandignore",
+      "target": "file:app.js",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:ui-styling",
+      "name": "User Interface & Styling",
+      "description": "HTML structure and custom CSS styling for the CalcAMS application.",
+      "nodeIds": [
+        "file:index.html",
+        "file:style.css"
+      ]
+    },
+    {
+      "id": "layer:application-logic",
+      "name": "Application Logic",
+      "description": "Core client-side JavaScript executing coordinates extraction and AMS safety corridor calculations.",
+      "nodeIds": [
+        "file:app.js"
+      ]
+    },
+    {
+      "id": "layer:configuration",
+      "name": "Configuration",
+      "description": "Project configuration and analysis ignore rules.",
+      "nodeIds": [
+        "file:.understand-anything/.understandignore"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Application Interface & Structure",
+      "description": "Start with index.html, which defines the core structure of the CalcAMS user interface. It mounts a Leaflet map container and provides a floating glassmorphic sidebar for uploading flight route files (GPX, KML, or TXT) and displaying computed leg safety data.",
+      "nodeIds": ["file:index.html"]
+    },
+    {
+      "order": 2,
+      "title": "Glassmorphism UI & Theme Styling",
+      "description": "Explore style.css, which implements a modern, premium design system featuring glassmorphic panels, harmonious color palettes, and full support for light, dark, and system auto themes. It delivers fluid responsiveness and rich aesthetics for the map-oriented layout.",
+      "nodeIds": ["file:style.css"]
+    },
+    {
+      "order": 3,
+      "title": "JavaScript Engine Overview & Theme Control",
+      "description": "Learn about the runtime architecture of CalcAMS in app.js. It coordinates geospatial libraries like Leaflet and Turf.js, handles user interaction, and implements dynamic theme changes.",
+      "nodeIds": ["file:app.js", "function:app.js:applyTheme"],
+      "languageLesson": "Using standard browser matchMedia queries enables automatic system theme changes inside client-side JavaScript."
+    },
+    {
+      "order": 4,
+      "title": "Route Upload and File Parsing",
+      "description": "Examine how flight route documents are processed. When a GPX, KML, or TXT file is uploaded, the engine reads and parses it to extract geographic coordinates and waypoints representing flight leg segments.",
+      "nodeIds": ["function:app.js:handleFileUpload", "function:app.js:parseRouteFile"]
+    },
+    {
+      "order": 5,
+      "title": "Safety Corridor & AMS Calculation",
+      "description": "Deep dive into the core calculation engine of the application. It creates a Turf.js buffer around the route to define the safety corridor, queries elevation tile images, calculates the Area Minimum Altitude (AMS), and dynamically populates the results sidebar.",
+      "nodeIds": ["function:app.js:processRouteCoordinates", "function:app.js:loadTileImage"],
+      "languageLesson": "Turf.js makes it easy to compute geospatial features like bounding boxes and coordinate buffers directly in the browser."
+    }
+  ]
+}
