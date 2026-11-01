@@ -179,10 +179,6 @@
       background-color: #0c0c0c;
     }
 
-    .dark-mode .map-tiles {
-      filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-    }
-
     /* Light Mode Styles */
     body.light-mode {
       background-color: #e5e7eb;
@@ -370,6 +366,9 @@
             mínima da área (AMS) de cada trecho da rota automaticamente.
           </p>
         </div>
+
+        <!-- Error / warning messages (filled by app.js) -->
+        <div id="messagePanel" class="hidden rounded-lg p-4 border text-xs leading-relaxed" role="alert"></div>
       </div>
 
       <!-- Results Table Section (Dynamically expands to fill remaining space) -->
@@ -438,6 +437,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
   <!-- Mapbox toGeoJSON for GPX/KML parsing -->
   <script src="https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.0/togeojson.min.js"></script>
+  <!-- Route parsing and AMS calculation (no DOM) -->
+  <script src="core.js"></script>
   <!-- App JS -->
   <script src="app.js"></script>
 </body>

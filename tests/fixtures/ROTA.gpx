@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gpx version="1.1" creator="PMA II" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" > 
+<metadata><name> PMA II </name><time>2026-05-28T13:54:21Z</time></metadata>
+
+<wpt lat="-16.2383333333333" lon="-48.9731666666667"><time>2026-05-29T16:00:00Z</time><name>SBAN RWY 16L</name><cmt>SBAN RWY 16L</cmt><desc>SBAN RWY 16L</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-17.3583333333333" lon="-50.3380555555556"><time>2026-05-29T16:31:45Z</time><name>FAZ. CANADA - SJER (1000m)</name><cmt>FAZ. CANADA - SJER (1000m)</cmt><desc>FAZ. CANADA - SJER (1000m)</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-17.8347222222222" lon="-50.9561111111111"><time>2026-05-29T16:44:44Z</time><name>RIO VERDE - SWLC (1500m)</name><cmt>RIO VERDE - SWLC (1500m)</cmt><desc>RIO VERDE - SWLC (1500m)</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-18.6645" lon="-52.0463333333333"><time>2026-05-29T17:08:02Z</time><name>PULOT - FIR</name><cmt>PULOT - FIR</cmt><desc>PULOT - FIR</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-19.3436463658453" lon="-52.6900383709966"><time>2026-05-29T17:23:39Z</time><name>PCH BURITI - SJRW (1600m)</name><cmt>PCH BURITI - SJRW (1600m)</cmt><desc>PCH BURITI - SJRW (1600m)</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-19.8670563940116" lon="-52.9860819961717"><time>2026-05-29T17:33:16Z</time><name>PISTA</name><cmt>PISTA</cmt><desc>PISTA</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-20.1858166666667" lon="-53.0501833333333"><time>2026-05-29T17:38:48Z</time><name>PI - PONTE</name><cmt>PI - PONTE</cmt><desc>PI - PONTE</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-20.2872290608864" lon="-52.9819319367163"><time>2026-05-29T17:40:52Z</time><name>TOPO</name><cmt>TOPO</cmt><desc>TOPO</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-20.3066666666667" lon="-53.0108333333333"><time>2026-05-29T17:41:27Z</time><name>ALVO 1</name><cmt>ALVO 1</cmt><desc>ALVO 1</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-20.6751333333333" lon="-53.5673333333333"><time>2026-05-29T17:52:23Z</time><name>RDV - BARRAGEM HIDR. MIMOSO</name><cmt>RDV - BARRAGEM HIDR. MIMOSO</cmt><desc>RDV - BARRAGEM HIDR. MIMOSO</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-21.1058" lon="-53.7381"><time>2026-05-29T18:00:15Z</time><name>PONTE RIB. LONTRA</name><cmt>PONTE RIB. LONTRA</cmt><desc>PONTE RIB. LONTRA</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-21.4019178210963" lon="-54.132348375802"><time>2026-05-29T18:08:20Z</time><name>PI - PONTE</name><cmt>PI - PONTE</cmt><desc>PI - PONTE</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-21.5007902360658" lon="-54.3296605746892"><time>2026-05-29T18:11:55Z</time><name>TOPO</name><cmt>TOPO</cmt><desc>TOPO</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-21.4822795160551" lon="-54.3452818417074"><time>2026-05-29T18:12:19Z</time><name>ALVO 2</name><cmt>ALVO 2</cmt><desc>ALVO 2</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-20.9945166666667" lon="-54.5069166666667"><time>2026-05-29T18:21:03Z</time><name>RDV - PONTE - ANHANDUI</name><cmt>RDV - PONTE - ANHANDUI</cmt><desc>RDV - PONTE - ANHANDUI</desc><sym>Waypoint</sym></wpt>
+<wpt lat="-20.4785" lon="-54.68225"><time>2026-05-29T18:29:54Z</time><name>SBCG RWY 06</name><cmt>SBCG RWY 06</cmt><desc>SBCG RWY 06</desc><sym>Waypoint</sym></wpt>
+
+<rte><name>AN-CG ATQ</name>
+<rtept lat="-16.2383333333333" lon="-48.9731666666667"><time>2026-05-29T16:00:00Z</time><name>SBAN RWY 16L</name><cmt>SBAN RWY 16L</cmt><desc>SBAN RWY 16L</desc></rtept>
+<rtept lat="-17.3583333333333" lon="-50.3380555555556"><time>2026-05-29T16:31:45Z</time><name>FAZ. CANADA - SJER (1000m)</name><cmt>FAZ. CANADA - SJER (1000m)</cmt><desc>FAZ. CANADA - SJER (1000m)</desc></rtept>
+<rtept lat="-17.8347222222222" lon="-50.9561111111111"><time>2026-05-29T16:44:44Z</time><name>RIO VERDE - SWLC (1500m)</name><cmt>RIO VERDE - SWLC (1500m)</cmt><desc>RIO VERDE - SWLC (1500m)</desc></rtept>
+<rtept lat="-18.6645" lon="-52.0463333333333"><time>2026-05-29T17:08:02Z</time><name>PULOT - FIR</name><cmt>PULOT - FIR</cmt><desc>PULOT - FIR</desc></rtept>
+<rtept lat="-19.3436463658453" lon="-52.6900383709966"><time>2026-05-29T17:23:39Z</time><name>PCH BURITI - SJRW (1600m)</name><cmt>PCH BURITI - SJRW (1600m)</cmt><desc>PCH BURITI - SJRW (1600m)</desc></rtept>
+<rtept lat="-19.8670563940116" lon="-52.9860819961717"><time>2026-05-29T17:33:16Z</time><name>PISTA</name><cmt>PISTA</cmt><desc>PISTA</desc></rtept>
+<rtept lat="-20.1858166666667" lon="-53.0501833333333"><time>2026-05-29T17:38:48Z</time><name>PI - PONTE</name><cmt>PI - PONTE</cmt><desc>PI - PONTE</desc></rtept>
+<rtept lat="-20.2872290608864" lon="-52.9819319367163"><time>2026-05-29T17:40:52Z</time><name>TOPO</name><cmt>TOPO</cmt><desc>TOPO</desc></rtept>
+<rtept lat="-20.3066666666667" lon="-53.0108333333333"><time>2026-05-29T17:41:27Z</time><name>ALVO 1</name><cmt>ALVO 1</cmt><desc>ALVO 1</desc></rtept>
+<rtept lat="-20.6751333333333" lon="-53.5673333333333"><time>2026-05-29T17:52:23Z</time><name>RDV - BARRAGEM HIDR. MIMOSO</name><cmt>RDV - BARRAGEM HIDR. MIMOSO</cmt><desc>RDV - BARRAGEM HIDR. MIMOSO</desc></rtept>
+<rtept lat="-21.1058" lon="-53.7381"><time>2026-05-29T18:00:15Z</time><name>PONTE RIB. LONTRA</name><cmt>PONTE RIB. LONTRA</cmt><desc>PONTE RIB. LONTRA</desc></rtept>
+<rtept lat="-21.4019178210963" lon="-54.132348375802"><time>2026-05-29T18:08:20Z</time><name>PI - PONTE</name><cmt>PI - PONTE</cmt><desc>PI - PONTE</desc></rtept>
+<rtept lat="-21.5007902360658" lon="-54.3296605746892"><time>2026-05-29T18:11:55Z</time><name>TOPO</name><cmt>TOPO</cmt><desc>TOPO</desc></rtept>
+<rtept lat="-21.4822795160551" lon="-54.3452818417074"><time>2026-05-29T18:12:19Z</time><name>ALVO 2</name><cmt>ALVO 2</cmt><desc>ALVO 2</desc></rtept>
+<rtept lat="-20.9945166666667" lon="-54.5069166666667"><time>2026-05-29T18:21:03Z</time><name>RDV - PONTE - ANHANDUI</name><cmt>RDV - PONTE - ANHANDUI</cmt><desc>RDV - PONTE - ANHANDUI</desc></rtept>
+<rtept lat="-20.4785" lon="-54.68225"><time>2026-05-29T18:29:54Z</time><name>SBCG RWY 06</name><cmt>SBCG RWY 06</cmt><desc>SBCG RWY 06</desc></rtept>
+</rte>
+
+</gpx>

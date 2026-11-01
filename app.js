@@ -21,14 +21,27 @@ const map = L.map('map', {
     zoomControl: false
 }).setView([-14.2350, -51.9253], 4);
 
-const osmTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+// Base layers: Esri street map (light) and Esri dark gray canvas with labels (dark). No API key needed.
+// tile.openstreetmap.org is not used because it blocks apps that do not follow its tile usage policy (HTTP 403).
+const esriTiles = (service, options) => L.tileLayer(
+    `https://services.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/tile/{z}/{y}/{x}`,
+    { attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors', maxZoom: 19, ...options });
+const baseLayers = {
+    light: esriTiles('World_Street_Map'),
+    dark: L.layerGroup([
+        esriTiles('Canvas/World_Dark_Gray_Base', { maxNativeZoom: 16 }),
+        esriTiles('Canvas/World_Dark_Gray_Reference', { maxNativeZoom: 16 })
+    ])
+};
+let activeBaseLayer = null;
 
-// Add Base Layer (OpenStreetMap with CSS dark filter in dark mode)
-const baseTileLayer = L.tileLayer(osmTileUrl, {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19,
-    className: 'map-tiles'
-}).addTo(map);
+function setBaseLayer(isDark) {
+    const next = isDark ? baseLayers.dark : baseLayers.light;
+    if (next === activeBaseLayer) return;
+    if (activeBaseLayer) map.removeLayer(activeBaseLayer);
+    next.addTo(map);
+    activeBaseLayer = next;
+}
 
 // Add Zoom Control to Top Right
 L.control.zoom({
@@ -60,6 +73,8 @@ function applyTheme(theme) {
 
     const html = document.documentElement;
     const body = document.body;
+
+    setBaseLayer(isDark);
 
     // Highlight theme buttons matching hawgoff style
     themeBtns.forEach(b => {
@@ -99,14 +114,35 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 const savedTheme = localStorage.getItem('app-theme') || 'system';
 applyTheme(savedTheme);
 
-// State for custom TXT route
-let parsedTxtRoute = null;
-const globalTileCache = new Map();
+// State for the loaded route
+let currentTxt = null;      // { parsed, filename, amsByLeg } when the loaded route is a TXT
+let currentRun = 0;         // incremented on each upload so a stale calculation can stop itself
+let waypointLabelHandler = null;
+const globalTileCache = new Map();   // tile key -> RGBA pixel data (Uint8ClampedArray)
+const pendingTiles = new Map();      // tile key -> Promise of a tile being fetched
+
+const messagePanel = document.getElementById('messagePanel');
+const MESSAGE_CLASSES = {
+    error: ['border-red-500/50', 'bg-red-500/10'],
+    warning: ['border-dtc-orange/50', 'bg-dtc-orange/10']
+};
+
+function showMessage(text, kind) {
+    hideMessage();
+    messagePanel.textContent = text;
+    messagePanel.classList.add(...MESSAGE_CLASSES[kind]);
+    messagePanel.classList.remove('hidden');
+}
+
+function hideMessage() {
+    messagePanel.classList.add('hidden');
+    Object.values(MESSAGE_CLASSES).forEach((classes) => messagePanel.classList.remove(...classes));
+}
 
 // File Upload Handler
 fileInput.addEventListener('change', handleFileUpload);
 
-function handleFileUpload(e) {
+async function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -131,55 +167,65 @@ function handleFileUpload(e) {
         helpPanel.classList.add('hidden');
     }
 
-    const reader = new FileReader();
-    reader.onload = function (evt) {
-        const text = evt.target.result;
+    // A new upload invalidates whatever was loaded or still being calculated
+    const run = ++currentRun;
+    currentTxt = null;
+    exportBtn.classList.add('hidden');
+    hideMessage();
 
-        // Hide export button by default on new upload
-        exportBtn.classList.add('hidden');
-        parsedTxtRoute = null;
+    try {
+        const route = await readRouteFile(file);
+        if (run !== currentRun) return;
+        if (route.txt) currentTxt = { ...route.txt, amsByLeg: [] };
+        await processRoute(route);
+    } catch (err) {
+        if (run !== currentRun) return;
+        if (!(err instanceof CalcAms.RouteError)) console.error(err);
+        showMessage(err instanceof CalcAms.RouteError
+            ? err.message
+            : 'Não foi possível processar o arquivo. Tente novamente ou verifique o formato.', 'error');
+        loadingSpinner.classList.add('hidden');
+        infoPanel.classList.remove('loading');
+        elevationValue.textContent = '-- ft';
+    }
+}
 
-        if (file.name.endsWith('.txt')) {
-            processTxtRoute(text, file.name);
-        } else {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(text, 'text/xml');
-            let geojson;
-            if (file.name.endsWith('.gpx')) {
-                geojson = toGeoJSON.gpx(doc);
-            } else if (file.name.endsWith('.kml')) {
-                geojson = toGeoJSON.kml(doc);
-            }
+// Reads a GPX/KML/TXT file into { waypoints, path, legs } (see CalcAms.extractRoute / parseTxtRoute)
+async function readRouteFile(file) {
+    const extension = (file.name.match(/\.([^.]+)$/) || [])[1];
+    const buffer = await file.arrayBuffer();
 
-            if (geojson) {
-                const coordinates = extractCoordinates(geojson);
-                processRouteCoordinates(coordinates, false);
-            } else {
-                alert('Failed to parse route file. Please make sure it is a valid GPX or KML.');
-            }
-        }
+    if (extension && extension.toLowerCase() === 'txt') {
+        const parsed = CalcAms.parseTxtRoute(CalcAms.bytesToBinaryString(new Uint8Array(buffer)));
+        return {
+            waypoints: parsed.waypoints,
+            path: parsed.waypoints.map((w) => w.coord),
+            legs: parsed.legs,
+            txt: { parsed, filename: file.name }
+        };
+    }
+
+    const kind = extension ? extension.toLowerCase() : '';
+    if (kind !== 'gpx' && kind !== 'kml') {
+        throw new CalcAms.RouteError('Formato não suportado. Use um arquivo GPX, KML ou TXT.');
+    }
+    const doc = new DOMParser().parseFromString(new TextDecoder('utf-8').decode(buffer), 'text/xml');
+    if (doc.querySelector('parsererror')) {
+        throw new CalcAms.RouteError(`O arquivo ${kind.toUpperCase()} não é um XML válido.`);
+    }
+    const route = CalcAms.extractRoute(kind === 'gpx' ? toGeoJSON.gpx(doc) : toGeoJSON.kml(doc));
+    return {
+        waypoints: route.waypoints,
+        path: route.path,
+        legs: route.waypoints.slice(0, -1).map((w, i) => ({
+            a: w.coord, b: route.waypoints[i + 1].coord, fromIndex: i, toIndex: i + 1, nivelLineIndex: null
+        }))
     };
-    reader.readAsText(file);
 }
 
-// Convert Lat/Lng to Tile Coordinates
-function lon2tile(lon, zoom) {
-    return Math.floor((lon + 180) / 360 * Math.pow(2, zoom));
-}
-function lat2tile(lat, zoom) {
-    return Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
-}
-function tile2lon(x, z) {
-    return (x / Math.pow(2, z) * 360 - 180);
-}
-function tile2lat(y, z) {
-    const n = Math.PI - 2 * Math.PI * y / Math.pow(2, z);
-    return (180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))));
-}
-
-// Load a single Terrain Tile image and read its pixels
+// Load a single Terrain Tile image and read its pixels (null when it fails to load)
 function loadTileImage(z, x, y) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.onload = () => {
@@ -188,195 +234,75 @@ function loadTileImage(z, x, y) {
             canvas.height = 256;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
-            const imageData = ctx.getImageData(0, 0, 256, 256);
-            resolve(imageData);
+            resolve(ctx.getImageData(0, 0, 256, 256).data);
         };
-        img.onerror = () => {
-            resolve(null);
-        };
+        img.onerror = () => resolve(null);
         img.src = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
     });
 }
 
-// Extract coords from GeoJSON features
-function extractCoordinates(geojson) {
-    const coords = [];
-    
-    // Find all LineString/MultiLineString features and categorize them
-    const routeFeatures = [];
-    const trackFeatures = [];
-    
-    turf.featureEach(geojson, (feature) => {
-        const type = feature.geometry ? feature.geometry.type : '';
-        if (type === 'LineString' || type === 'MultiLineString') {
-            const gpxType = feature.properties ? feature.properties._gpxType : '';
-            if (gpxType === 'rte') {
-                routeFeatures.push(feature);
-            } else if (gpxType === 'trk') {
-                trackFeatures.push(feature);
-            } else {
-                // Fallback for lines without explicit type
-                routeFeatures.push(feature);
-            }
-        }
-    });
+// Cached tile pixels; a failed download is retried once and never cached
+function loadTileData(z, x, y) {
+    const key = CalcAms.tileKey(z, x, y);
+    if (globalTileCache.has(key)) return Promise.resolve(globalTileCache.get(key));
+    if (pendingTiles.has(key)) return pendingTiles.get(key);
 
-    // Prioritize GPX Routes (rte) over Tracks (trk)
-    let selectedFeatures = [];
-    if (routeFeatures.length > 0) {
-        selectedFeatures = routeFeatures;
-    } else if (trackFeatures.length > 0) {
-        selectedFeatures = trackFeatures;
-    }
+    const request = (async () => {
+        let data = await loadTileImage(z, x, y);
+        if (!data) data = await loadTileImage(z, x, y);
+        if (data) globalTileCache.set(key, data);
+        return data;
+    })().finally(() => pendingTiles.delete(key));
+    pendingTiles.set(key, request);
+    return request;
+}
 
-    if (selectedFeatures.length > 0) {
-        // Use coordinates from the selected lines (preserves sequence)
-        selectedFeatures.forEach(feature => {
-            turf.coordEach(feature, (coord) => {
-                if (coords.length === 0) {
-                    coords.push(coord);
-                } else {
-                    const last = coords[coords.length - 1];
-                    const dist = turf.distance(turf.point(last), turf.point(coord), { units: 'meters' });
-                    // Avoid adjacent duplicates (closer than 10 meters)
-                    if (dist > 10) {
-                        coords.push(coord);
-                    }
-                }
-            });
-        });
+function addLegRow(leg, summary) {
+    const row = document.createElement('tr');
+    const label = `WP ${leg.fromIndex + 1} ➔ WP ${leg.toIndex + 1}`;
+    if (summary) {
+        row.innerHTML = `
+            <td>${label}</td>
+            <td class="ams-highlight">${summary.ams}</td>
+            <td class="height-range-cell">
+                <div class="height-max">${summary.maxFt}</div>
+                <div class="height-min">${summary.minFt}</div>
+            </td>
+            <td>${summary.deltaFt}</td>
+        `;
     } else {
-        // Fallback: collect coordinates from individual Point features (Waypoints)
-        // Usually used if the GPX only contains <wpt> elements
-        turf.featureEach(geojson, (feature) => {
-            const type = feature.geometry ? feature.geometry.type : '';
-            if (type === 'Point') {
-                const coord = feature.geometry.coordinates;
-                if (coords.length === 0) {
-                    coords.push(coord);
-                } else {
-                    const last = coords[coords.length - 1];
-                    const dist = turf.distance(turf.point(last), turf.point(coord), { units: 'meters' });
-                    if (dist > 10) {
-                        coords.push(coord);
-                    }
-                }
-            }
-        });
+        row.innerHTML = `
+            <td>${label}</td>
+            <td class="ams-highlight">--</td>
+            <td class="height-range-cell" colspan="2">sem dados de terreno</td>
+        `;
+        row.classList.add('leg-error');
     }
-
-    return coords;
+    legsTableBody.appendChild(row);
 }
 
-// Custom route parser for Rota1.txt format
-function parseRouteFile(text) {
-    const lines = text.split(/\r?\n/);
-    const waypoints = [];
-    const legs = [];
-
-    let currentObject = null;
-    let contextStack = [];
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line.trim()) continue;
-
-        const tabMatch = line.match(/^(\t*)/);
-        const tabCount = tabMatch ? tabMatch[1].length : 0;
-
-        while (contextStack.length > tabCount) {
-            contextStack.pop();
-        }
-
-        const trimmed = line.trim();
-        const objMatch = trimmed.match(/^IObjeto\s*-\s*(.*)$/);
-
-        if (objMatch) {
-            if (currentObject) {
-                saveObject(currentObject, waypoints, legs);
-            }
-            currentObject = {
-                name: objMatch[1],
-                type: null,
-                lat: null,
-                lon: null,
-                nivelMinimoLineIndex: null
-            };
-            contextStack = [];
-            continue;
-        }
-
-        if (currentObject) {
-            const eqIndex = trimmed.indexOf('=');
-            if (eqIndex !== -1) {
-                const key = trimmed.substring(0, eqIndex).trim();
-                const value = trimmed.substring(eqIndex + 1).trim();
-
-                const fullKey = contextStack.filter(Boolean).concat(key).join('.');
-
-                if (key === 'Tipo') {
-                    currentObject.type = value;
-                } else if (fullKey.endsWith('GateIn.Posicao.Lat') || fullKey.endsWith('GateOut.Posicao.Lat') || fullKey === 'Posicao.Lat' || fullKey.endsWith('Posicao.Lat')) {
-                    if (currentObject.lat === null) currentObject.lat = parseFloat(value);
-                } else if (fullKey.endsWith('GateIn.Posicao.Lon') || fullKey.endsWith('GateOut.Posicao.Lon') || fullKey === 'Posicao.Lon' || fullKey.endsWith('Posicao.Lon')) {
-                    if (currentObject.lon === null) currentObject.lon = parseFloat(value);
-                } else if (fullKey.endsWith('Castelo.NivelMinimoIFR')) {
-                    currentObject.nivelMinimoLineIndex = i;
-                }
-            } else {
-                contextStack[tabCount] = trimmed;
-            }
-        }
-    }
-
-    if (currentObject) {
-        saveObject(currentObject, waypoints, legs);
-    }
-
-    return { lines, waypoints, legs };
+function addPeakMarker(legNumber, summary) {
+    if (!summary.peak) return;
+    const peakIcon = L.divIcon({
+        className: 'peak-marker',
+        html: `<div style="background-color: #ef4444; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 8px #ef4444; cursor: pointer;"></div>`,
+        iconSize: [10, 10],
+        iconAnchor: [5, 5]
+    });
+    L.marker([summary.peak.lat, summary.peak.lng], { icon: peakIcon })
+        .bindTooltip(`Trecho ${legNumber} - pico: ${summary.maxFt} ft`, {
+            direction: 'top',
+            className: 'peak-tooltip'
+        })
+        .addTo(routeLayers);
 }
 
-function saveObject(obj, waypoints, legs) {
-    if (obj.type === 'NavWaypoint') {
-        waypoints.push({
-            name: obj.name,
-            lat: obj.lat,
-            lon: obj.lon
-        });
-    } else if (obj.type === 'NavPerna') {
-        legs.push({
-            name: obj.name,
-            nivelMinimoLineIndex: obj.nivelMinimoLineIndex,
-            ams: null
-        });
-    }
-}
+// Core processing flow: draws the route and computes the AMS of each leg
+async function processRoute(route) {
+    const run = currentRun;
+    const isStale = () => run !== currentRun;
+    const coordinates = route.waypoints.map((w) => w.coord);
 
-// Process the Custom TXT file route
-function processTxtRoute(text, filename) {
-    const parsed = parseRouteFile(text);
-    if (parsed.waypoints.length < 2) {
-        alert('Route file must contain at least 2 waypoints.');
-        return;
-    }
-
-    // Store state
-    parsedTxtRoute = {
-        lines: parsed.lines,
-        legs: parsed.legs,
-        filename: filename
-    };
-
-    // Convert waypoints format to coordinates array [[lon, lat], ...]
-    const coordinates = parsed.waypoints.map(wp => [wp.lon, wp.lat]);
-
-    // Process calculations and show export button
-    exportBtn.classList.remove('hidden');
-    processRouteCoordinates(coordinates, true);
-}
-
-// Core processing coordinates flow
-async function processRouteCoordinates(coordinates, isTxt) {
     routeLayers.clearLayers();
     legsTableBody.innerHTML = '';
     resultsSection.classList.remove('hidden');
@@ -384,145 +310,16 @@ async function processRouteCoordinates(coordinates, isTxt) {
     // Show overall loader
     loadingSpinner.classList.remove('hidden');
     infoPanel.classList.add('loading');
-    elevationValue.textContent = 'Processing...';
+    elevationValue.textContent = 'Calculando...';
 
-    // Draw full route line on the map
-    const routeLine = turf.lineString(coordinates);
-    const routeLayer = L.geoJSON(routeLine, {
+    // Draw full route line on the map (dense path when the file has one)
+    const routeLayer = L.geoJSON(turf.lineString(route.path.map((c) => [c[0], c[1]])), {
         style: { color: '#60a5fa', weight: 4, opacity: 0.8 }
     }).addTo(routeLayers);
 
     // Zoom map to the route
     map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
 
-    // Loop through each leg
-    for (let i = 0; i < coordinates.length - 1; i++) {
-        const ptA = coordinates[i];
-        const ptB = coordinates[i + 1];
-
-        const legLine = turf.lineString([ptA, ptB]);
-        const corridor = turf.buffer(legLine, 18.52, { units: 'kilometers' });
-
-        L.geoJSON(corridor, {
-            style: { color: '#3b82f6', weight: 1, fillOpacity: 0.1, dashArray: '5, 5' }
-        }).addTo(routeLayers);
-
-        const bounds = turf.bbox(corridor);
-        const zoom = 10;
-
-        const minX = lon2tile(bounds[0], zoom);
-        const maxX = lon2tile(bounds[2], zoom);
-        const minY = lat2tile(bounds[3], zoom);
-        const maxY = lat2tile(bounds[1], zoom);
-
-        let maxElevFt = -99999;
-        let minElevFt = 99999;
-        let maxElevLat = null;
-        let maxElevLng = null;
-
-        const tilePromises = [];
-        for (let tx = minX; tx <= maxX; tx++) {
-            for (let ty = minY; ty <= maxY; ty++) {
-                tilePromises.push({ tx, ty, promise: loadTileImage(zoom, tx, ty) });
-            }
-        }
-
-        const tileResults = await Promise.all(tilePromises.map(t => t.promise));
-
-        for (let k = 0; k < tilePromises.length; k++) {
-            const imageData = tileResults[k];
-            if (!imageData) continue;
-
-            const tx = tilePromises[k].tx;
-            const ty = tilePromises[k].ty;
-
-            // Cache tile image data
-            globalTileCache.set(`${zoom},${tx},${ty}`, imageData);
-
-            const step = 4;
-
-            for (let px = 0; px < 256; px += step) {
-                for (let py = 0; py < 256; py += step) {
-                    const lat = tile2lat(ty + py / 256, zoom);
-                    const lng = tile2lon(tx + px / 256, zoom);
-
-                    const point = turf.point([lng, lat]);
-
-                    if (turf.booleanPointInPolygon(point, corridor)) {
-                        const idx = (py * 256 + px) * 4;
-                        const r = imageData.data[idx];
-                        const g = imageData.data[idx + 1];
-                        const b = imageData.data[idx + 2];
-
-                        const elevM = (r * 256 + g + b / 256) - 32768;
-                        const elevFt = elevM * 3.28084;
-
-                        if (elevFt > maxElevFt) {
-                            maxElevFt = elevFt;
-                            maxElevLat = lat;
-                            maxElevLng = lng;
-                        }
-                        if (elevFt < minElevFt) minElevFt = elevFt;
-                    }
-                }
-            }
-        }
-
-        let ams = 0;
-        const elevDiff = maxElevFt - minElevFt;
-
-        if (maxElevFt === -99999) {
-            maxElevFt = 0;
-            minElevFt = 0;
-            ams = 1000;
-        } else {
-            if (elevDiff > 1000) {
-                ams = maxElevFt + 2000;
-            } else {
-                ams = maxElevFt + 1000;
-            }
-            ams = Math.ceil(ams / 100) * 100;
-        }
-
-        maxElevFt = Math.max(0, Math.round(maxElevFt));
-        minElevFt = Math.max(0, Math.round(minElevFt));
-        const finalVar = Math.max(0, Math.round(elevDiff));
-
-        // Save calculate AMS value to state if it's a TXT route
-        if (isTxt && parsedTxtRoute && parsedTxtRoute.legs[i]) {
-            parsedTxtRoute.legs[i].ams = ams;
-        }
-
-        // Draw Peak Elevation Marker for Visual Verification
-        if (maxElevLat !== null && maxElevLng !== null && maxElevFt !== -99999) {
-            const peakIcon = L.divIcon({
-                className: 'peak-marker',
-                html: `<div style="background-color: #ef4444; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 8px #ef4444; cursor: pointer;"></div>`,
-                iconSize: [10, 10],
-                iconAnchor: [5, 5]
-            });
-            L.marker([maxElevLat, maxElevLng], { icon: peakIcon })
-                .bindTooltip(`Leg ${i + 1} Peak: ${Math.round(maxElevFt)} ft`, {
-                    direction: 'top',
-                    className: 'peak-tooltip'
-                })
-                .addTo(routeLayers);
-        }
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>WP ${i + 1} ➔ WP ${i + 2}</td>
-            <td class="ams-highlight">${ams}</td>
-            <td class="height-range-cell">
-                <div class="height-max">${maxElevFt}</div>
-                <div class="height-min">${minElevFt}</div>
-            </td>
-            <td>${finalVar}</td>
-        `;
-        legsTableBody.appendChild(row);
-    }
-
-    // We define a function to draw waypoints dynamically based on the current map zoom level
     const updateWaypointLabels = () => {
         // Find existing custom waypoint markers and remove them from routeLayers
         routeLayers.eachLayer((layer) => {
@@ -625,33 +422,71 @@ async function processRouteCoordinates(coordinates, isTxt) {
     // Initial render of waypoints
     updateWaypointLabels();
 
-    // Listen to zoom changes to re-calculate grouping threshold and redraw labels
-    map.on('zoomend', updateWaypointLabels);
+    // Re-group labels on zoom changes (replacing the handler of any previous route)
+    if (waypointLabelHandler) map.off('zoomend', waypointLabelHandler);
+    waypointLabelHandler = updateWaypointLabels;
+    map.on('zoomend', waypointLabelHandler);
 
-    // Hide loader
+    const amsByLeg = [];
+    let failedLegs = 0;
+
+    for (let i = 0; i < route.legs.length; i++) {
+        const leg = route.legs[i];
+        elevationValue.textContent = `Calculando ${i + 1}/${route.legs.length}`;
+
+        const corridor = turf.buffer(turf.lineString([leg.a, leg.b]), CalcAms.CRITERIA.corridorMeters / 1000, { units: 'kilometers' });
+        L.geoJSON(corridor, {
+            style: { color: '#3b82f6', weight: 1, fillOpacity: 0.1, dashArray: '5, 5' }
+        }).addTo(routeLayers);
+
+        const tiles = new Map();
+        await Promise.all(CalcAms.legCorridorTiles(leg.a, leg.b).map(async ({ z, x, y, key }) => {
+            tiles.set(key, await loadTileData(z, x, y));
+        }));
+        if (isStale()) return;
+
+        const analysis = CalcAms.analyzeLeg(leg.a, leg.b, tiles);
+        let summary = null;
+        try {
+            summary = CalcAms.summarizeLeg(analysis);
+        } catch (err) {
+            if (!(err instanceof CalcAms.RouteError)) throw err;
+            failedLegs++;
+        }
+
+        amsByLeg[i] = summary ? summary.ams : null;
+        if (summary) addPeakMarker(i + 1, summary);
+        addLegRow(leg, summary);
+    }
+
     loadingSpinner.classList.add('hidden');
     infoPanel.classList.remove('loading');
     elevationValue.textContent = '-- ft';
+
+    if (failedLegs > 0) {
+        showMessage(
+            `${failedLegs} trecho(s) ficaram sem AMS porque os dados de terreno não carregaram. ` +
+            'Verifique a conexão e carregue o arquivo novamente. A exportação foi bloqueada.', 'error');
+        return;
+    }
+
+    if (currentTxt) {
+        currentTxt.amsByLeg = amsByLeg;
+        const withoutField = route.legs.filter((leg) => leg.nivelLineIndex === null).length;
+        if (withoutField > 0) {
+            showMessage(`${withoutField} perna(s) do TXT não têm o campo Castelo.NivelMinimoIFR e não serão atualizadas na exportação.`, 'warning');
+        }
+        exportBtn.classList.remove('hidden');
+    }
 }
 
-// Export Calculated Route TXT
+// Export Calculated Route TXT (same bytes as the original, with the AMS lines updated)
 exportBtn.addEventListener('click', () => {
-    if (!parsedTxtRoute) return;
+    if (!currentTxt) return;
 
-    const { lines, legs, filename } = parsedTxtRoute;
-
-    // Mutate the lines array with calculated AMS values
-    legs.forEach((leg) => {
-        if (leg.nivelMinimoLineIndex !== null && leg.ams !== null) {
-            const originalLine = lines[leg.nivelMinimoLineIndex];
-            const indentMatch = originalLine.match(/^(\s*)/);
-            const indent = indentMatch ? indentMatch[1] : '\t\t\t\t';
-            lines[leg.nivelMinimoLineIndex] = `${indent}Castelo.NivelMinimoIFR = ${leg.ams}`;
-        }
-    });
-
-    const outputText = lines.join('\n');
-    const blob = new Blob([outputText], { type: 'text/plain;charset=utf-8' });
+    const { parsed, filename, amsByLeg } = currentTxt;
+    const bytes = CalcAms.binaryStringToBytes(CalcAms.applyAmsToTxt(parsed, amsByLeg));
+    const blob = new Blob([bytes], { type: 'text/plain' });
 
     // Create download link
     const link = document.createElement('a');
@@ -660,7 +495,9 @@ exportBtn.addEventListener('click', () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(link.href), 0);
 });
+
 
 // Single-click map query coordinates fallback
 map.on('click', async (e) => {
@@ -708,19 +545,19 @@ map.on('mousemove', throttle(async (e) => {
     // Update coordinates formatted as GG MM.MM
     coordinatesValue.textContent = formatGGMM(lat, lng);
 
-    const zoom = 10;
-    const tx = lon2tile(lng, zoom);
-    const ty = lat2tile(lat, zoom);
-    const cacheKey = `${zoom},${tx},${ty}`;
+    // Keep the progress text visible while a route is being calculated
+    if (!loadingSpinner.classList.contains('hidden')) return;
 
-    let imageData = globalTileCache.get(cacheKey);
-    if (!imageData) {
+    const zoom = CalcAms.CRITERIA.terrainZoom;
+    const tx = CalcAms.lonToTileX(lng, zoom);
+    const ty = CalcAms.latToTileY(lat, zoom);
+
+    let tileData = globalTileCache.get(CalcAms.tileKey(zoom, tx, ty));
+    if (!tileData) {
         // Fetch tile on the fly if not cached
         elevationValue.textContent = '... ft';
-        imageData = await loadTileImage(zoom, tx, ty);
-        if (imageData) {
-            globalTileCache.set(cacheKey, imageData);
-        } else {
+        tileData = await loadTileData(zoom, tx, ty);
+        if (!tileData) {
             elevationValue.textContent = '-- ft';
             return;
         }
@@ -736,9 +573,9 @@ map.on('mousemove', throttle(async (e) => {
     const clampedPy = Math.max(0, Math.min(255, py));
 
     const idx = (clampedPy * 256 + clampedPx) * 4;
-    const r = imageData.data[idx];
-    const g = imageData.data[idx + 1];
-    const b = imageData.data[idx + 2];
+    const r = tileData[idx];
+    const g = tileData[idx + 1];
+    const b = tileData[idx + 2];
 
     const elevM = (r * 256 + g + b / 256) - 32768;
     const elevFt = Math.round(elevM * 3.28084);
