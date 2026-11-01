@@ -118,6 +118,9 @@ applyTheme(savedTheme);
 let currentTxt = null;      // { parsed, filename, amsByLeg } when the loaded route is a TXT
 let currentRun = 0;         // incremented on each upload so a stale calculation can stop itself
 let waypointLabelHandler = null;
+let legViews = [];          // per leg: { row, corridor } used by the clickable table rows
+let selectedLeg = null;
+const routeSummary = document.getElementById('routeSummary');
 const globalTileCache = new Map();   // tile key -> RGBA pixel data (Uint8ClampedArray)
 const pendingTiles = new Map();      // tile key -> Promise of a tile being fetched
 
@@ -257,28 +260,86 @@ function loadTileData(z, x, y) {
     return request;
 }
 
-function addLegRow(leg, summary) {
+const CORRIDOR_STYLE = { color: '#3b82f6', weight: 1, fillOpacity: 0.1, dashArray: '5, 5' };
+const CORRIDOR_SELECTED_STYLE = { color: '#22c55e', weight: 2, fillOpacity: 0.25, dashArray: null };
+
+function legNames(route, leg) {
+    const from = route.waypoints[leg.fromIndex].name;
+    const to = route.waypoints[leg.toIndex].name;
+    return from || to ? `${from || '?'} ➔ ${to || '?'}` : '';
+}
+
+function addLegRow(route, leg, summary) {
     const row = document.createElement('tr');
     const label = `WP ${leg.fromIndex + 1} ➔ WP ${leg.toIndex + 1}`;
-    if (summary) {
-        row.innerHTML = `
-            <td>${label}</td>
-            <td class="ams-highlight">${summary.ams}</td>
+    const names = legNames(route, leg);
+    const nameLine = names ? `<div class="leg-names"></div>` : '';
+    const range = summary
+        ? `<td class="ams-highlight">${summary.ams}</td>
             <td class="height-range-cell">
                 <div class="height-max">${summary.maxFt}</div>
                 <div class="height-min">${summary.minFt}</div>
             </td>
-            <td>${summary.deltaFt}</td>
-        `;
-    } else {
-        row.innerHTML = `
-            <td>${label}</td>
-            <td class="ams-highlight">--</td>
-            <td class="height-range-cell" colspan="2">sem dados de terreno</td>
-        `;
-        row.classList.add('leg-error');
+            <td>${summary.deltaFt}</td>`
+        : `<td class="ams-highlight">--</td>
+            <td class="height-range-cell" colspan="2">sem dados de terreno</td>`;
+    row.innerHTML = `<td><div>${label}</div>${nameLine}</td>${range}`;
+    if (names) {
+        const nameEl = row.querySelector('.leg-names');
+        nameEl.textContent = names;
+        nameEl.title = names;
     }
+    if (!summary) row.classList.add('leg-error');
+    row.tabIndex = 0;
+    row.classList.add('leg-row');
     legsTableBody.appendChild(row);
+    return row;
+}
+
+// Highlights a leg (table row + corridor) and zooms the map to it; selecting it again returns to the whole route
+function selectLeg(index, routeBounds) {
+    const previous = selectedLeg;
+    if (previous !== null && legViews[previous]) {
+        legViews[previous].row.classList.remove('leg-selected');
+        legViews[previous].corridor.setStyle(CORRIDOR_STYLE);
+    }
+    if (index === previous || !legViews[index]) {
+        selectedLeg = null;
+        map.fitBounds(routeBounds, { padding: [50, 50] });
+        return;
+    }
+    selectedLeg = index;
+    const view = legViews[index];
+    view.row.classList.add('leg-selected');
+    view.corridor.setStyle(CORRIDOR_SELECTED_STYLE);
+    view.corridor.bringToFront();
+    map.fitBounds(view.corridor.getBounds(), { padding: [40, 40] });
+}
+
+function renderRouteSummary(route, amsByLeg) {
+    const range = CalcAms.routeAmsRange(amsByLeg);
+    routeSummary.replaceChildren();
+    if (!range) {
+        routeSummary.classList.add('hidden');
+        return;
+    }
+    [['Maior AMS da rota', range.max], ['Menor AMS da rota', range.min]].forEach(([title, item]) => {
+        const leg = route.legs[item.index];
+        const block = document.createElement('div');
+        block.className = 'summary-item';
+        const caption = document.createElement('span');
+        caption.className = 'summary-caption';
+        caption.textContent = title;
+        const value = document.createElement('span');
+        value.className = 'summary-value';
+        value.textContent = `${item.ams} ft`;
+        const where = document.createElement('span');
+        where.className = 'summary-where';
+        where.textContent = `WP ${leg.fromIndex + 1} ➔ WP ${leg.toIndex + 1}`;
+        block.append(caption, value, where);
+        routeSummary.appendChild(block);
+    });
+    routeSummary.classList.remove('hidden');
 }
 
 function addPeakMarker(legNumber, summary) {
@@ -305,6 +366,9 @@ async function processRoute(route) {
 
     routeLayers.clearLayers();
     legsTableBody.innerHTML = '';
+    legViews = [];
+    selectedLeg = null;
+    routeSummary.classList.add('hidden');
     resultsSection.classList.remove('hidden');
 
     // Show overall loader
@@ -318,7 +382,8 @@ async function processRoute(route) {
     }).addTo(routeLayers);
 
     // Zoom map to the route
-    map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+    const routeBounds = routeLayer.getBounds();
+    map.fitBounds(routeBounds, { padding: [50, 50] });
 
     const updateWaypointLabels = () => {
         // Find existing custom waypoint markers and remove them from routeLayers
@@ -408,6 +473,18 @@ async function processRoute(route) {
                 interactive: true
             }).addTo(routeLayers);
 
+            // Hover tooltip with the waypoint names (built with textContent: names come from the file)
+            const named = wp.indices.filter((idx) => route.waypoints[idx - 1].name);
+            if (named.length > 0) {
+                const tip = document.createElement('div');
+                named.forEach((idx) => {
+                    const line = document.createElement('div');
+                    line.textContent = `${idx}. ${route.waypoints[idx - 1].name}`;
+                    tip.appendChild(line);
+                });
+                marker.bindTooltip(tip, { direction: 'top', offset: [0, -10], className: 'wp-tooltip' });
+            }
+
             // Add click interaction fallback for touch screens and leaflet maps
             marker.on('click', (ev) => {
                 L.DomEvent.stopPropagation(ev); // Prevent map clicks
@@ -435,9 +512,7 @@ async function processRoute(route) {
         elevationValue.textContent = `Calculando ${i + 1}/${route.legs.length}`;
 
         const corridor = turf.buffer(turf.lineString([leg.a, leg.b]), CalcAms.CRITERIA.corridorMeters / 1000, { units: 'kilometers' });
-        L.geoJSON(corridor, {
-            style: { color: '#3b82f6', weight: 1, fillOpacity: 0.1, dashArray: '5, 5' }
-        }).addTo(routeLayers);
+        const corridorLayer = L.geoJSON(corridor, { style: CORRIDOR_STYLE }).addTo(routeLayers);
 
         const tiles = new Map();
         await Promise.all(CalcAms.legCorridorTiles(leg.a, leg.b).map(async ({ z, x, y, key }) => {
@@ -456,12 +531,23 @@ async function processRoute(route) {
 
         amsByLeg[i] = summary ? summary.ams : null;
         if (summary) addPeakMarker(i + 1, summary);
-        addLegRow(leg, summary);
+        const row = addLegRow(route, leg, summary);
+        legViews[i] = { row, corridor: corridorLayer };
+        const select = () => selectLeg(i, routeBounds);
+        row.addEventListener('click', select);
+        row.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                select();
+            }
+        });
     }
 
     loadingSpinner.classList.add('hidden');
     infoPanel.classList.remove('loading');
     elevationValue.textContent = '-- ft';
+
+    renderRouteSummary(route, amsByLeg);
 
     if (failedLegs > 0) {
         showMessage(

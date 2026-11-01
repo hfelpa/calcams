@@ -26,6 +26,7 @@
     const TILE_SIZE = 256;
     const MIN_WAYPOINT_SPACING_M = 10; // pontos mais próximos que isso são considerados duplicados
     const MAX_LEGS = 300;              // limite de trechos quando a rota vem só de uma linha
+    const NAME_MATCH_METERS = 50;      // distância máxima para herdar o nome de um waypoint
 
     class RouteError extends Error {
         constructor(message) {
@@ -117,7 +118,12 @@
         const gpxRoutes = lines.filter((l) => l.type === 'rte');
         if (gpxRoutes.length > 0) {
             const coords = [].concat(...gpxRoutes.map((l) => l.coords));
-            const waypoints = dedupeAdjacent(coords.map((coord) => ({ name: '', coord })), (w) => w.coord);
+            // Pontos de uma <rte> não trazem nome no GeoJSON: usa o do waypoint na mesma posição
+            const nameAt = (coord) => {
+                const match = points.find((p) => p.name && distanceMeters(p.coord, coord) <= NAME_MATCH_METERS);
+                return match ? match.name : '';
+            };
+            const waypoints = dedupeAdjacent(coords.map((coord) => ({ name: nameAt(coord), coord })), (w) => w.coord);
             return finishRoute(waypoints, waypoints.map((w) => w.coord), 'rota');
         }
 
@@ -392,8 +398,23 @@
         };
     }
 
+    // Maior e menor AMS da rota, com o índice do trecho de cada uma. `null` se não houver nenhuma.
+    function routeAmsRange(amsByLeg) {
+        let range = null;
+        amsByLeg.forEach((ams, index) => {
+            if (ams === null || ams === undefined) return;
+            if (!range) {
+                range = { max: { ams, index }, min: { ams, index } };
+                return;
+            }
+            if (ams > range.max.ams) range.max = { ams, index };
+            if (ams < range.min.ams) range.min = { ams, index };
+        });
+        return range;
+    }
+
     return {
-        CRITERIA, RouteError,
+        CRITERIA, RouteError, routeAmsRange,
         distanceMeters, extractRoute,
         bytesToBinaryString, binaryStringToBytes, parseTxtRoute, applyAmsToTxt,
         lonToTileX, latToTileY, tileXToLon, tileYToLat, tileKey,

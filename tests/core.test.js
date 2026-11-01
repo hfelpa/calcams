@@ -25,16 +25,18 @@ function kmlToGeojson(xml) {
     return { type: 'FeatureCollection', features };
 }
 
-function gpxToGeojson(xml) {
+function gpxToGeojson(xml, withNames = false) {
     const pts = (block, tag) => [...block.matchAll(new RegExp(`<${tag} lat="([^"]+)" lon="([^"]+)"`, 'g'))]
         .map((m) => [Number(m[2]), Number(m[1])]);
+    const names = (block) => [...block.matchAll(/<wpt [^>]*>[\s\S]*?<name>([\s\S]*?)<\/name>/g)].map((m) => m[1].trim());
+    const wptNames = names(xml.replace(/<rte>[\s\S]*?<\/rte>/, ''));
     const features = [];
     const rte = xml.match(/<rte>([\s\S]*?)<\/rte>/);
     if (rte) {
         features.push({ type: 'Feature', properties: { _gpxType: 'rte' }, geometry: { type: 'LineString', coordinates: pts(rte[1], 'rtept') } });
     }
     pts(xml.replace(/<rte>[\s\S]*?<\/rte>/, ''), 'wpt').forEach((c, i) => {
-        features.push({ type: 'Feature', properties: { name: `WPT ${i}` }, geometry: { type: 'Point', coordinates: c } });
+        features.push({ type: 'Feature', properties: { name: withNames ? wptNames[i] : '' }, geometry: { type: 'Point', coordinates: c } });
     });
     return { type: 'FeatureCollection', features };
 }
@@ -54,6 +56,18 @@ test('KML: usa os 16 waypoints nomeados e não os 8995 vértices da linha', () =
     assert.equal(route.waypoints[15].name, 'PONTO DELTA');
     assert.ok(route.waypoints.every((w) => w.name !== '#' && w.name !== 'Referência'));
     assert.ok(route.path.length > 1000, 'a linha densa continua disponível para desenhar');
+});
+
+test('GPX: nomes dos pontos da rota vêm dos waypoints na mesma posição', () => {
+    const route = core.extractRoute(gpxToGeojson(fixture('ROTA.gpx').toString('utf8'), true));
+    assert.equal(route.waypoints[0].name, 'PONTO ALFA');
+    assert.equal(route.waypoints[15].name, 'PONTO DELTA');
+    assert.ok(route.waypoints.every((w) => w.name));
+});
+
+test('GPX: sem waypoints nomeados por perto, o nome fica vazio', () => {
+    const route = core.extractRoute(gpxToGeojson(fixture('ROTA.gpx').toString('utf8')));
+    assert.ok(route.waypoints.every((w) => w.name === ''));
 });
 
 test('KML e GPX descrevem os mesmos waypoints', () => {
@@ -206,4 +220,11 @@ test('summarizeLeg: valores de exibição', () => {
     assert.equal(s.minFt, Math.round(500 * 3.28084));
     assert.equal(s.deltaFt, s.maxFt - s.minFt);
     assert.equal(s.ams, core.computeAms(1500 * 3.28084, 500 * 3.28084));
+});
+
+test('routeAmsRange: maior e menor AMS com o trecho de cada uma, ignorando trechos sem valor', () => {
+    const range = core.routeAmsRange([4000, null, 2700, 5800, 2700]);
+    assert.deepEqual(range, { max: { ams: 5800, index: 3 }, min: { ams: 2700, index: 2 } });
+    assert.equal(core.routeAmsRange([null, null]), null);
+    assert.equal(core.routeAmsRange([]), null);
 });
