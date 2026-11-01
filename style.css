@@ -498,3 +498,8 @@ body.light-theme .wp-child-label {
     letter-spacing: 0.5px;
 }
 
+
+/* Leg without terrain data */
+#legsTableBody .leg-error td {
+    color: #ef4444;
+}
