@@ -1,11 +1,74 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const core = require('../core.js');
 
-const fixture = (name) => fs.readFileSync(path.join(__dirname, 'fixtures', name));
+// ---- Rota fictícia usada nos testes (nenhum arquivo de rota real no repositório) ----
+const WAYPOINTS = [
+    { name: 'PONTO ALFA', lat: -15.0, lon: -47.0 },
+    { name: 'PONTO BRAVO', lat: -15.5, lon: -47.6 },
+    { name: 'CAMPO CHARLIE', lat: -16.1, lon: -48.0 },
+    { name: 'PONTO DELTA', lat: -16.4, lon: -48.7 }
+];
+const LEG_LEVELS = [3600, 3400, 3300];
+
+function gpxXml() {
+    const wpt = WAYPOINTS.map((w) => `<wpt lat="${w.lat}" lon="${w.lon}"><name>${w.name}</name></wpt>`).join('\n');
+    const rtept = WAYPOINTS.map((w) => `<rtept lat="${w.lat}" lon="${w.lon}"><name>${w.name}</name></rtept>`).join('\n');
+    return `<gpx version="1.1">\n${wpt}\n<rte><name>ROTA TESTE</name>\n${rtept}\n</rte></gpx>`;
+}
+
+// KML no estilo do software de origem: linha densificada + pontos nomeados + pontos auxiliares.
+function kmlXml() {
+    const dense = [];
+    for (let i = 0; i < WAYPOINTS.length - 1; i++) {
+        for (let s = 0; s < 500; s++) {
+            const f = s / 500;
+            dense.push(`${WAYPOINTS[i].lon + (WAYPOINTS[i + 1].lon - WAYPOINTS[i].lon) * f},${WAYPOINTS[i].lat + (WAYPOINTS[i + 1].lat - WAYPOINTS[i].lat) * f},1000`);
+        }
+    }
+    const point = (name, style, lon, lat) =>
+        `<Placemark><name>${name}</name><styleUrl>${style}</styleUrl><Point><coordinates>${lon},${lat},1000</coordinates></Point></Placemark>`;
+    return `<kml><Document>
+<Placemark><name>ROTA TESTE</name><styleUrl>#EstiloRota</styleUrl><LineString><coordinates>
+${dense.join('\n')}
+</coordinates></LineString></Placemark>
+${point(WAYPOINTS[0].name, '#EstiloWpt', WAYPOINTS[0].lon, WAYPOINTS[0].lat)}
+${point('#', '#EstiloPSPNPD', -47.3, -15.25)}
+${WAYPOINTS.slice(1).map((w) => point(w.name, '#EstiloWpt', w.lon, w.lat)).join('\n')}
+${point('Referência', '#EstiloPtRef', -47.1, -15.1)}
+</Document></kml>`;
+}
+
+// Texto do formato TXT como "texto binário" (1 caractere = 1 byte, CRLF, acento em Windows-1252).
+function txtBinary() {
+    const t = (depth, text) => `${'\t'.repeat(depth)}${text}`;
+    const gate = (depth, name, lat, lon) => [t(depth, name), t(depth + 1, `Posicao.Lat = ${lat}`), t(depth + 1, `Posicao.Lon = ${lon}`)];
+    const lines = [
+        'IObjeto - ROTA TESTE',
+        t(1, 'DadosComuns'), t(2, 'Tipo = NavRota'),
+        t(1, 'DadosEspecificos'), t(2, 'IObjetoNav'), ...gate(3, 'GateIn', 0, 0)
+    ];
+    const legNames = ['Perna 8', 'Perna 2', 'Perna 5']; // fora de ordem de propósito
+    WAYPOINTS.forEach((w, i) => {
+        lines.push(
+            t(2, `IObjeto - ${w.name}`),
+            t(3, 'DadosComuns'), t(4, 'Tipo = NavWaypoint'),
+            t(3, 'DadosEspecificos'), t(4, 'IObjetoNav'), ...gate(5, 'GateIn', w.lat, w.lon));
+        if (i < WAYPOINTS.length - 1) {
+            const next = WAYPOINTS[i + 1];
+            lines.push(
+                t(2, `IObjeto - ${legNames[i]}`),
+                t(3, 'DadosComuns'), t(4, 'Tipo = NavPerna'),
+                t(3, 'DadosEspecificos'), t(4, 'IObjetoNav'),
+                ...gate(5, 'GateIn', w.lat, w.lon), ...gate(5, 'GateOut', next.lat, next.lon),
+                t(4, 'Castelo.Tipo = G'),
+                t(4, `Castelo.NivelMinimoIFR = ${LEG_LEVELS[i]}`),
+                t(4, 'NomeReferencia = Refer\xeancia'));
+        }
+    });
+    return lines.join('\r\n') + '\r\n';
+}
 
 // Converte KML/GPX em GeoJSON no mesmo formato que o togeojson entrega ao app
 // (só o necessário para estes testes; o parser real roda no navegador).
@@ -42,37 +105,35 @@ function gpxToGeojson(xml, withNames = false) {
 }
 
 // ---- GPX / KML ----
-test('GPX: usa os 16 pontos da rota', () => {
-    const route = core.extractRoute(gpxToGeojson(fixture('ROTA.gpx').toString('utf8')));
-    assert.equal(route.waypoints.length, 16);
+test('GPX: usa os pontos da rota', () => {
+    const route = core.extractRoute(gpxToGeojson(gpxXml()));
+    assert.equal(route.waypoints.length, WAYPOINTS.length);
     assert.equal(route.source, 'rota');
 });
 
-test('KML: usa os 16 waypoints nomeados e não os 8995 vértices da linha', () => {
-    const route = core.extractRoute(kmlToGeojson(fixture('ROTA.kml').toString('utf8')));
-    assert.equal(route.waypoints.length, 16);
+test('KML: usa os waypoints nomeados e não os vértices da linha', () => {
+    const route = core.extractRoute(kmlToGeojson(kmlXml()));
+    assert.equal(route.waypoints.length, WAYPOINTS.length);
     assert.equal(route.source, 'waypoints');
     assert.equal(route.waypoints[0].name, 'PONTO ALFA');
-    assert.equal(route.waypoints[15].name, 'PONTO DELTA');
+    assert.equal(route.waypoints[3].name, 'PONTO DELTA');
     assert.ok(route.waypoints.every((w) => w.name !== '#' && w.name !== 'Referência'));
     assert.ok(route.path.length > 1000, 'a linha densa continua disponível para desenhar');
 });
 
 test('GPX: nomes dos pontos da rota vêm dos waypoints na mesma posição', () => {
-    const route = core.extractRoute(gpxToGeojson(fixture('ROTA.gpx').toString('utf8'), true));
-    assert.equal(route.waypoints[0].name, 'PONTO ALFA');
-    assert.equal(route.waypoints[15].name, 'PONTO DELTA');
-    assert.ok(route.waypoints.every((w) => w.name));
+    const route = core.extractRoute(gpxToGeojson(gpxXml(), true));
+    assert.deepEqual(route.waypoints.map((w) => w.name), WAYPOINTS.map((w) => w.name));
 });
 
 test('GPX: sem waypoints nomeados por perto, o nome fica vazio', () => {
-    const route = core.extractRoute(gpxToGeojson(fixture('ROTA.gpx').toString('utf8')));
+    const route = core.extractRoute(gpxToGeojson(gpxXml()));
     assert.ok(route.waypoints.every((w) => w.name === ''));
 });
 
 test('KML e GPX descrevem os mesmos waypoints', () => {
-    const kml = core.extractRoute(kmlToGeojson(fixture('ROTA.kml').toString('utf8')));
-    const gpx = core.extractRoute(gpxToGeojson(fixture('ROTA.gpx').toString('utf8')));
+    const kml = core.extractRoute(kmlToGeojson(kmlXml()));
+    const gpx = core.extractRoute(gpxToGeojson(gpxXml()));
     kml.waypoints.forEach((w, i) => assert.ok(core.distanceMeters(w.coord, gpx.waypoints[i].coord) < 5, `waypoint ${i}`));
 });
 
@@ -87,12 +148,10 @@ test('arquivo sem rota lança RouteError', () => {
 });
 
 // ---- TXT ----
-const txtText = () => core.bytesToBinaryString(new Uint8Array(fixture('ROTA.txt')));
-
-test('TXT: lê 16 waypoints e 15 pernas com o campo da AMS', () => {
-    const parsed = core.parseTxtRoute(txtText());
-    assert.equal(parsed.waypoints.length, 16);
-    assert.equal(parsed.legs.length, 15);
+test('TXT: lê waypoints e pernas com o campo da AMS', () => {
+    const parsed = core.parseTxtRoute(txtBinary());
+    assert.equal(parsed.waypoints.length, WAYPOINTS.length);
+    assert.equal(parsed.legs.length, WAYPOINTS.length - 1);
     assert.ok(parsed.legs.every((leg) => leg.nivelLineIndex !== null));
     parsed.legs.forEach((leg, i) => {
         assert.equal(leg.fromIndex, i, `origem da perna ${i}`);
@@ -101,18 +160,18 @@ test('TXT: lê 16 waypoints e 15 pernas com o campo da AMS', () => {
 });
 
 test('TXT: sem alterações, a gravação devolve exatamente os mesmos bytes', () => {
-    const parsed = core.parseTxtRoute(txtText());
-    const out = core.binaryStringToBytes(core.applyAmsToTxt(parsed, []));
-    assert.deepEqual(Buffer.from(out), fixture('ROTA.txt'));
+    const text = txtBinary();
+    const out = core.binaryStringToBytes(core.applyAmsToTxt(core.parseTxtRoute(text), []));
+    assert.deepEqual(Buffer.from(out), Buffer.from(text, 'latin1'));
 });
 
 test('TXT: grava só as linhas da AMS e preserva CRLF e acentos', () => {
-    const original = fixture('ROTA.txt');
-    const parsed = core.parseTxtRoute(txtText());
+    const text = txtBinary();
+    const parsed = core.parseTxtRoute(text);
     const ams = parsed.legs.map((_, i) => 1000 + i * 100);
     const out = Buffer.from(core.binaryStringToBytes(core.applyAmsToTxt(parsed, ams)));
 
-    const before = original.toString('latin1').split('\n');
+    const before = text.split('\n');
     const after = out.toString('latin1').split('\n');
     assert.equal(after.length, before.length);
     assert.ok(after.every((line, i) => line.endsWith('\r') === before[i].endsWith('\r')), 'CRLF preservado');
@@ -123,7 +182,7 @@ test('TXT: grava só as linhas da AMS e preserva CRLF e acentos', () => {
 });
 
 test('TXT: perna sem campo da AMS não é alterada', () => {
-    const parsed = core.parseTxtRoute(txtText());
+    const parsed = core.parseTxtRoute(txtBinary());
     const copy = { ...parsed, legs: parsed.legs.map((l, i) => (i === 0 ? { ...l, nivelLineIndex: null } : l)) };
     const out = core.applyAmsToTxt(copy, copy.legs.map(() => 9999)).split('\n');
     assert.ok(out[parsed.legs[0].nivelLineIndex].includes('= 3600'));

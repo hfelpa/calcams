@@ -3,3 +3,8 @@
 temp-skill/
 .venv/
 __pycache__/
+# Rotas dos usuarios (nunca versionar)
+ROTA*
+*.gpx
+*.kml
+Calculated_*
